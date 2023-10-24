@@ -5,6 +5,7 @@ from spade.template import Template
 from spade.message import Message
 import asyncio
 import spade
+import random
 
 
 # Define the Environment class to represent the air traffic control environment
@@ -27,11 +28,10 @@ class Environment:
         self.runway_status[runway_id] = status
         print(self.runway_status)
 
-    def get_aircraft_position(self):
-        #
-        pass
+    def get_aircraft_positions(self):
+        return self.aircraft_positions
 
-    def get_weather_data(selfself):
+    def get_weather_data(self):
         #
         pass
 
@@ -51,12 +51,13 @@ class AirTrafficControlAgent(Agent):
             async def run(self):
                 print("EnvironmentInteraction behavior is running")
                 # Perceive environment data - you can use ACL messages or other means
-                aircraft_position = self.get_aircraft_position()
+                aircraft_positions = self.get_aircraft_position()
                 weather_data = self.get_weather_data()
                 runway_status = self.get_runway_status()
 
                 # Make decisions based on perceptions and update the environment
                 # Example: Check for conflicts and send instructions to aircraft
+                await asyncio.sleep(10)
 
             def get_aircraft_position(self):
                 # Implement logic to retrieve aircraft positions from the environment
@@ -75,9 +76,14 @@ class AirTrafficControlAgent(Agent):
 
 
 class AircraftAgent(Agent):
-    def __init__(self, jid, password, environment):
+    def __init__(self, jid, password, environment, pos):
         super().__init__(jid, password)
         self.environment = environment
+        tmp=str.split(jid,"@")
+        tmp2=str.split(tmp[0],"e")
+        self.id=int(tmp2[1])
+        print(self.id)
+        self.environment.update_aircraft_position(self.id,pos)
 
     async def setup(self):
         # Define a behavior to interact with the environment and air traffic control
@@ -92,6 +98,7 @@ class AircraftAgent(Agent):
 
                 # Communicate with air traffic control
                 await self.send_instruction_to_atc(aircraft_position)
+                await asyncio.sleep(10)
 
             def get_aircraft_position(self):
                 # Access the environment object to retrieve the aircraft's position
@@ -115,12 +122,19 @@ async def main():
     atc_environment = Environment()
 
     atc_agent = AirTrafficControlAgent("atc_agent@localhost", "password", atc_environment)
-
-    aircraft_agent = AircraftAgent("aircraft_agent@localhost", "password", atc_environment)
-
     await atc_agent.start(auto_register=True)
-    await aircraft_agent.start(auto_register=True)
 
+    aircraft_agents=[0]*5
+    for i in range(5):
+        pos=(random.randint(0,100),random.randint(0,100))
+        aircraft_agents[i] = AircraftAgent(f"airplane{i}@localhost", "password", atc_environment, pos)
+        print(f"Agente {i} criado com posicao {pos}")
 
+    for i in range(5):
+        await aircraft_agents[i].start(auto_register=True)
+    
+
+    
+    
 if __name__ == "__main__":
     spade.run(main())
