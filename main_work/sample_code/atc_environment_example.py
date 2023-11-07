@@ -18,7 +18,7 @@ class Environment:
 
     def update_aircraft_position(self, aircraft_id, position):
         self.aircraft_positions[aircraft_id] = position
-        print(self.aircraft_positions)
+        print(self.aircraft_positions)  
 
     def update_weather(self, weather_data):
         self.weather_conditions = weather_data
@@ -32,12 +32,14 @@ class Environment:
         return self.aircraft_positions
 
     def get_weather_data(self):
-        #
-        pass
+        # Implementar a lógica para obter dados meteorológicos
+        # Por simplicidade, podemos retornar um valor fixo ou gerado aleatoriamente
+        return {"wind": random.choice(["N", "S", "E", "W"]), "visibility": random.choice(["good", "moderate", "poor"])}
 
     def get_runway_status(self):
-        #
-        pass
+        # Implementar a lógica para obter o status da pista
+        # Por simplicidade, podemos retornar um valor fixo ou gerado aleatoriamente
+        return {"runway1": random.choice(["free", "occupied", "maintenance"])}
 
 
 class AirTrafficControlAgent(Agent):
@@ -60,16 +62,16 @@ class AirTrafficControlAgent(Agent):
                 await asyncio.sleep(10)
 
             def get_aircraft_position(self):
-                # Implement logic to retrieve aircraft positions from the environment
-                pass
+            # Implementar a lógica para recuperar as posições das aeronaves do ambiente
+                return self.agent.environment.get_aircraft_positions()
 
             def get_weather_data(self):
-                # Implement logic to retrieve weather data from the environment
-                pass
+                # Implementar a lógica para recuperar os dados meteorológicos do ambiente
+                return self.agent.environment.get_weather_data()
 
             def get_runway_status(self):
-                # Implement logic to retrieve runway status from the environment
-                pass
+                # Implementar a lógica para recuperar o status da pista do ambiente
+                return self.agent.environment.get_runway_status()
 
         # Add the behavior to the agent
         self.add_behaviour(EnvironmentInteraction())
@@ -94,15 +96,15 @@ class AircraftAgent(Agent):
                 aircraft_position = self.get_aircraft_position()
 
                 # update aircraft position
-                self.agent.environment.update_aircraft_position(100, 3000)
+                self.agent.environment.update_aircraft_position(1, 3000)
 
                 # Communicate with air traffic control
                 await self.send_instruction_to_atc(aircraft_position)
                 await asyncio.sleep(10)
 
             def get_aircraft_position(self):
-                # Access the environment object to retrieve the aircraft's position
-                return self.agent.environment.get_aircraft_position()
+                    # Acessar o objeto de ambiente para recuperar a posição da aeronave
+                    return self.agent.environment.aircraft_positions[self.agent.id]
 
             async def send_instruction_to_atc(self, position):
                 # Create an ACL message to send data to the air traffic control agent
