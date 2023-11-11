@@ -10,6 +10,7 @@ import json
 
 class Environment:
     def __init__(self):
+        # arrays para adicionar ao json será que funciona? vamos ver amigos
         self.aircraft_positions = {}
         self.weather_conditions = {}
         self.runway_status = {}
@@ -24,6 +25,7 @@ class Environment:
                 new_x = position[0] + random.randint(-10, 10)
                 new_y = position[1] + random.randint(-10, 10)
                 self.aircraft_positions[aircraft_id] = (new_x, new_y)
+        #abre file e mete array 
         with open("aircraft_positions.json", "w") as file:
             json.dump(self.aircraft_positions, file)
 
