@@ -2,6 +2,9 @@ import pygame
 import sys
 import json
 
+# Inicialização do Pygame
+pygame.init()
+
 def load_aircraft_positions():
     try:
         with open("aircraft_positions.json", "r") as file:
@@ -9,45 +12,40 @@ def load_aircraft_positions():
     except FileNotFoundError:
         return {}
 
-#abrir a janeula do pygame
+# Configuração da janela do Pygame
 screen_width, screen_height = 800, 600
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Air Traffic Control Simulation")
 clock = pygame.time.Clock()
 
-#colores hermanos
-background_color = (0, 105, 148)  # Cor de fundo: Azul
-aircraft_color = (0, 0, 0)       # Cor dos aviões: Preto
-airport_color = (255, 255, 255)  # Cor dos aeroportos: Branco
+# Configuração de cores
+background_color = (0, 105, 148)  # Azul
+aircraft_color = (0, 0, 0)       # Preto
+airport_color = (255, 255, 255)  # Branco
 
 # Posições dos aeroportos
 airport_positions = [(100, 100), (300, 500), (600, 300)]
 
-# ir verificando e atualizando 
+# Loop principal
 while True:
-    # Tratamento de eventos (fechar janela, etc.)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
 
-    
     aircraft_positions = load_aircraft_positions()
-
-    
     screen.fill(background_color)
 
-    # Desenhar os avioneitos lindos
+    # Desenhar as aeronaves
     for aircraft_id, position in aircraft_positions.items():
-        pos_x, pos_y = int(position[0]), int(position[1])
+        # Ajustar as posições para o tamanho da tela
+        pos_x = int(position[0] * screen_width / 1000)
+        pos_y = int(position[1] * screen_height / 1000)
         pygame.draw.circle(screen, aircraft_color, (pos_x, pos_y), 5)
 
     # Desenhar os aeroportos
     for pos in airport_positions:
         pygame.draw.rect(screen, airport_color, (*pos, 30, 30))
 
-    # Atualizar
     pygame.display.flip()
-
-    # fipisi (fpesses)
-    clock.tick(1)
+    clock.tick(1)  # 30 FPS para uma visualização mais suave
