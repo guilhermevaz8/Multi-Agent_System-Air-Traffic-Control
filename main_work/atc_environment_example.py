@@ -8,6 +8,10 @@ import spade
 import random
 import json
 import os
+from random import randint
+from math import dist
+
+
 
 
 class Environment:
@@ -15,8 +19,35 @@ class Environment:
         self.aircraft_positions = {}
         self.weather_conditions = {}
         self.runway_status = {}
-        self.airport_positions = [(100, 100), (300, 500), (600, 300)]
+        self.airport_positions = {}
         self.conflict_zones = []  # Zonas onde podem ocorrer conflitos
+
+    def generate_airport(self):
+        DISTANCE_BET_AIRP = 15
+        airport_colors = ["RED","GREEN","YELLOW","MAGENTA","WHITE"] 
+        for i in range(5):
+            pos = (randint(2,38),randint(2,28))
+            if self.airport_positions == {}:
+                self.airport_positions[airport_colors[i]]=pos
+                continue
+            mindist=False
+            while not mindist:
+                flag=True
+                for key,tmp in self.airport_positions.items():
+                    x=tmp[0]
+                    y=tmp[1]
+                    while dist(pos,(x,y))<=DISTANCE_BET_AIRP:
+                        flag=False
+                        pos = (randint(2,38),randint(2,28))
+                if flag:
+                    mindist=True
+                else:
+                    mindist=False
+            self.airport_positions[airport_colors[i]]=pos
+        with open("airport_positions.json", "w") as file:
+            print("Saving airport positions to JSON")
+            json.dump(self.airport_positions, file)
+            print("Airport Positions Saved as JSON File")
 
     def update_aircraft_position(self, aircraft_id, position):
         self.aircraft_positions[aircraft_id] = position
@@ -25,14 +56,16 @@ class Environment:
     def move_aircraft(self):
         for aircraft_id, position in self.aircraft_positions.items():
             if isinstance(position, tuple) and len(position) == 2:
-                new_x = position[0] + random.randint(-10, 10)
-                new_y = position[1] + random.randint(-10, 10)
+                new_x = position[0]
+                new_y = position[1] 
                 self.aircraft_positions[aircraft_id] = (new_x, new_y)
-            print(f"Moved aircraft {aircraft_id} to position {self.aircraft_positions[aircraft_id]}")
+            #print(f"Moved aircraft {aircraft_id} to position {self.aircraft_positions[aircraft_id]}")
+    
+    def save_aircraf_positions(self):
         with open("aircraft_positions.json", "w") as file:
-            print("vou escrever")
+            print("Saving aircraft postions to JSON")
             json.dump(self.aircraft_positions, file)
-            print("escrevi")
+            print("Aircraft Postions Saved to JSON")
 
     def detect_conflicts(self):
         self.conflict_zones = []
@@ -55,8 +88,8 @@ class Environment:
 
     def generate_alternative_route(self, aircraft_id):
         # Gerar uma rota aleatória como exemplo
-        new_x = random.randint(0, 1000)
-        new_y = random.randint(0, 1000)
+        new_x = random.randint(2, 38)
+        new_y = random.randint(2, 28)
         return (new_x, new_y)
 
     def update_weather(self, weather_data):
@@ -88,9 +121,7 @@ class AirTrafficControlAgent(Agent):
 
         async def run(self):
             print("EnvironmentInteraction behavior is running")
-            print(self.first)
             if (self.first != True):
-                print("aqui")
                 # Atualizar a posição das aeronaves
                 self.agent.environment.move_aircraft()
                 first=True
@@ -124,7 +155,7 @@ class AirTrafficControlAgent(Agent):
 
             # Enviar a mensagem
             await self.send(msg)
-            print(f"Sent new route to aircraft {aircraft_id}: {new_route}")
+            #print(f"Sent new route to aircraft {aircraft_id}: {new_route}")
 
 
 
@@ -147,7 +178,7 @@ class AircraftAgent(Agent):
     class AircraftInteraction(CyclicBehaviour):
         async def run(self):
             # Atualizar a posição da aeronave
-            self.agent.update_position()
+            #self.agent.update_position()
 
             # Comunicar posição atual para o ATC
             await self.send_instruction_to_atc(self.agent.position)
@@ -169,19 +200,28 @@ class AircraftAgent(Agent):
             msg = await self.receive(timeout=1)  # Esperar por uma mensagem por um tempo limite
             if msg:
                 new_route = msg.body
-                print(f"Received new route instructions: {new_route}")
+                #print(f"Received new route instructions: {new_route}")
                 # Atualizar a rota da aeronave conforme necessário
 
     def update_position(self):
         # Atualizar a posição da aeronave no ambiente
-        new_x = random.randint(0, 1000)
-        new_y = random.randint(0, 1000)
+        new_x = random.randint(2, 38)
+        new_y = random.randint(2, 28)
         self.position = (new_x, new_y)
         self.environment.update_aircraft_position(self.id, self.position)
 
 async def main():
     # Inicializar o ambiente
     atc_environment = Environment()
+    atc_environment.generate_airport()
+
+    for airport in atc_environment.airport_positions:
+        print(airport)
+
+    # Verificar e criar o arquivo de posições dos aeroportos, se necessário
+    if not os.path.exists("airport_positions.json"):
+        with open("airport_positions.json", "w") as file:
+            json.dump({}, file)
 
     # Verificar e criar o arquivo de posições dos aviões, se necessário
     if not os.path.exists("aircraft_positions.json"):
@@ -195,11 +235,16 @@ async def main():
     # Inicializar e iniciar os agentes de aeronaves
     aircraft_agents = []
     for i in range(5):
-        pos = (random.randint(0, 100), random.randint(0, 100))
+        airport_positions = atc_environment.airport_positions.values()
+        pos = random.choice(list(airport_positions))
+        print(airport_positions)
+        print(pos)
         agent = AircraftAgent(f"airplane{i}@localhost", "password", atc_environment, pos)
         aircraft_agents.append(agent)
         await agent.start(auto_register=True)
 
+
+    atc_environment.save_aircraf_positions()
     # Loop principal
     while True:
         await asyncio.sleep(1)  # Intervalo de atualização
