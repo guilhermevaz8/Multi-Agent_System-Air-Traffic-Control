@@ -2,10 +2,6 @@
 import pygame
 import sys
 import json
-from random import randint
-from math import dist
-
-DISTANCE_BET_AIRP = 15
 
 # Inicialização do Pygame
 pygame.init()
@@ -33,31 +29,8 @@ clock = pygame.time.Clock()
 # Configuração de cores
 background_color = (0, 105, 148)  # Azul
 aircraft_color = (0, 0, 0)       # Preto
-airport_colors = ["RED","GREEN","YELLOW","MAGENTA","WHITE"]  # Branco
 
-airport_positions = {}
-
-# Posições dos aeroportos
-for i in range(5):
-    pos = (randint(2,38),randint(2,28))
-    if airport_positions == {}:
-         airport_positions[airport_colors[i]]=pos
-         continue
-    mindist=False
-    while not mindist:
-        flag=True
-        for key,tmp in airport_positions.items():
-            x=tmp[0]
-            y=tmp[1]
-            while dist(pos,(x,y))<=DISTANCE_BET_AIRP:
-                flag=False
-                pos = (randint(2,38),randint(2,28))
-        if flag:
-            mindist=True
-        else:
-            mindist=False
-    airport_positions[airport_colors[i]]=pos
-
+airport_positions=load_airport_positions()
 
 
 # Loop principal
@@ -68,12 +41,11 @@ while True:
             sys.exit()
 
     aircraft_positions = load_aircraft_positions()
-    print(aircraft_positions)
 
     screen.fill(background_color)
 
     # Desenhar as aeronaves
-    for aircraft_id, position_aircraft in aircraft_positions.items():
+    for aircraft_id, position in aircraft_positions.items():
         # Ajustar as posições para o tamanho da tela
         pos_x = int(position[0] * screen_width / 1000)
         pos_y = int(position[1] * screen_height / 1000)

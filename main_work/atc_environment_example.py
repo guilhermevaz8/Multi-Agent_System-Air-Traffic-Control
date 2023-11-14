@@ -8,6 +8,10 @@ import spade
 import random
 import json
 import os
+from random import randint
+from math import dist
+
+
 
 
 class Environment:
@@ -19,11 +23,28 @@ class Environment:
         self.conflict_zones = []  # Zonas onde podem ocorrer conflitos
 
     def generate_airport(self):
+        DISTANCE_BET_AIRP = 15
+        airport_colors = ["RED","GREEN","YELLOW","MAGENTA","WHITE"] 
         print("Esta cena aqui deu")
         for i in range(5):
-            positionX = random.randint(2,38)
-            positionY = random.randint(2,28)
-            self.airport_positions[i] = (positionX, positionY)
+            pos = (randint(2,38),randint(2,28))
+            if self.airport_positions == {}:
+                self.airport_positions[airport_colors[i]]=pos
+                continue
+            mindist=False
+            while not mindist:
+                flag=True
+                for key,tmp in self.airport_positions.items():
+                    x=tmp[0]
+                    y=tmp[1]
+                    while dist(pos,(x,y))<=DISTANCE_BET_AIRP:
+                        flag=False
+                        pos = (randint(2,38),randint(2,28))
+                if flag:
+                    mindist=True
+                else:
+                    mindist=False
+            self.airport_positions[airport_colors[i]]=pos
         with open("airport_positions.json", "w") as file:
             print("vou escrever2")
             json.dump(self.airport_positions, file)
