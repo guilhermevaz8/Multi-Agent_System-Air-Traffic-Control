@@ -15,8 +15,19 @@ class Environment:
         self.aircraft_positions = {}
         self.weather_conditions = {}
         self.runway_status = {}
-        self.airport_positions = [(100, 100), (300, 500), (600, 300)]
+        self.airport_positions = {}
         self.conflict_zones = []  # Zonas onde podem ocorrer conflitos
+
+    def generate_airport(self):
+        print("Esta cena aqui deu")
+        for i in range(5):
+            positionX = random.randint(2,38)
+            positionY = random.randint(2,28)
+            self.airport_positions[i] = (positionX, positionY)
+        with open("airport_positions.json", "w") as file:
+            print("vou escrever2")
+            json.dump(self.airport_positions, file)
+            print("escrevi2")
 
     def update_aircraft_position(self, aircraft_id, position):
         self.aircraft_positions[aircraft_id] = position
@@ -182,6 +193,15 @@ class AircraftAgent(Agent):
 async def main():
     # Inicializar o ambiente
     atc_environment = Environment()
+    atc_environment.generate_airport()
+
+    for airport in atc_environment.airport_positions:
+        print(airport)
+
+    # Verificar e criar o arquivo de posições dos aeroportos, se necessário
+    if not os.path.exists("airport_positions.json"):
+        with open("airport_positions.json", "w") as file:
+            json.dump({}, file)
 
     # Verificar e criar o arquivo de posições dos aviões, se necessário
     if not os.path.exists("aircraft_positions.json"):
