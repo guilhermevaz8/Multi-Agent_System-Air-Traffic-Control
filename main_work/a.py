@@ -4,7 +4,7 @@ def heuristic(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])  # Distância de Manhattan
 
 def a_star_search(grid, start, goal):
-    neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # Movimentos possíveis
+    neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0),(-1,-1),(-1,1),(1,-1),(1,1)]  # Movimentos possíveis
 
     close_set = set()
     came_from = {}
@@ -47,16 +47,4 @@ def a_star_search(grid, start, goal):
                 heapq.heappush(oheap, (fscore[neighbor], neighbor))
                 
     return False
-
-grid = [
-    [0, 0, 0, 0, 0],
-    [0, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0],    
-    [0, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0]
-]
-start = (0, 0)
-goal = (4, 4)
-
-path = a_star_search(grid, start, goal)
-print(path)
+ 

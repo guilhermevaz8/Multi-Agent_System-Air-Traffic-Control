@@ -23,7 +23,7 @@ def load_airport_positions():
 # Configuração da janela do Pygame
 screen_width, screen_height = 800, 600
 screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("Air Traffic Control Simulatiqon")
+pygame.display.set_caption("Air Traffic Control Simulation")
 clock = pygame.time.Clock()
 
 # Configuração de cores

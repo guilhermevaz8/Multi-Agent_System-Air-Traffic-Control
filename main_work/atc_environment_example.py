@@ -194,7 +194,7 @@ class AircraftAgent(Agent):
 
             self.agent.update_position()
 
-            await asyncio.sleep(3)
+            await asyncio.sleep(1)
 
         #async def send_instruction_to_atc(self, position):
             # Enviar posição atual para o ATC
@@ -219,10 +219,7 @@ class AircraftAgent(Agent):
         #print(self.environment.airport_positions["WHITE"])
         self.grid=self.environment.grid
         self.route=a_star_search(self.environment.grid,self.position,self.environment.airport_positions["WHITE"])
-        print(self.position)
         self.position = (self.route[0][0],self.route[0][1])
-        print(self.route)
-        print(self.position)
         self.environment.update_aircraft_position(self.id, self.position)
 
 
@@ -253,8 +250,6 @@ async def main():
     for i in range(5):
         airport_positions = atc_environment.airport_positions.values()
         pos = random.choice(list(airport_positions))
-        #print(airport_positions)
-        #print(pos)
         agent = AircraftAgent(f"airplane{i}@localhost", "password", atc_environment, pos)
         aircraft_agents.append(agent)
         await agent.start(auto_register=True)
