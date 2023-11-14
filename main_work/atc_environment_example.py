@@ -51,6 +51,12 @@ class Environment:
             print("Saving airport positions to JSON")
             json.dump(self.airport_positions, file)
             print("Airport Positions Saved as JSON File")
+    
+    def generate_final_position(self, initial_position):
+        available_airports = list(self.airport_positions.values())
+        available_airports.remove(initial_position)  # Remove the initial position from the available options
+        final_position = random.choice(available_airports)
+        return final_position
 
     def update_aircraft_position(self, aircraft_id, position):
         self.aircraft_positions[aircraft_id] = position
@@ -116,7 +122,7 @@ class AirTrafficControlAgent(Agent):
     def __init__(self, jid, password, environment):
         super().__init__(jid, password)
         self.environment = environment
-
+    
     async def setup(self):
         self.add_behaviour(self.EnvironmentInteraction())
 
@@ -170,6 +176,7 @@ class AircraftAgent(Agent):
         self.id = self.extract_id(jid)
         self.position = pos
         self.route=[]
+        self.final_position = self.environment.generate_final_position(pos)  # Pass the initial position
         self.environment.update_aircraft_position(self.id, pos)
 
     def extract_id(self, jid):
@@ -218,7 +225,8 @@ class AircraftAgent(Agent):
         #print(self.position)
         #print(self.environment.airport_positions["WHITE"])
         self.grid=self.environment.grid
-        self.route=a_star_search(self.environment.grid,self.position,self.environment.airport_positions["WHITE"])
+        self.route=a_star_search(self.environment.grid,self.position,self.final_position)
+        print(self.position)
         self.position = (self.route[0][0],self.route[0][1])
         self.environment.update_aircraft_position(self.id, self.position)
 
@@ -226,6 +234,7 @@ class AircraftAgent(Agent):
 async def main():
     # Inicializar o ambiente
     atc_environment = Environment()
+    
     atc_environment.generate_airport()
 
     for airport in atc_environment.airport_positions:
@@ -257,8 +266,14 @@ async def main():
 
     atc_environment.save_aircraf_positions()
     # Loop principal
+    for aircraft_agent in aircraft_agents:
+        print("--------------------------------")
+        print(aircraft_agent.final_position, aircraft_agent.position)
+
+
     while True:
         await asyncio.sleep(1)  # Intervalo de atualização
+    
 
 if __name__ == "__main__":
     spade.run(main())
