@@ -1,7 +1,8 @@
 import heapq
+from math import dist
 
 def heuristic(a, b):
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])  # Distância de Manhattan
+    return dist(a,b)  # Distância de Manhattan
 
 def a_star_search(grid, start, goal):
     neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0),(-1,-1),(-1,1),(1,-1),(1,1)]  # Movimentos possíveis

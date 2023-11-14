@@ -47,9 +47,9 @@ while True:
     # Desenhar as aeronaves
     for aircraft_id, position in aircraft_positions.items():
         # Ajustar as posições para o tamanho da tela
-        pos_x = int(position[0] * screen_width / 40)
-        pos_y = int(position[1] * screen_height / 30)
-        pygame.draw.circle(screen, aircraft_color, (pos_x, pos_y), 10)
+        pos_x = int(position[1][0] * screen_width / 40)
+        pos_y = int(position[1][1] * screen_height / 30)
+        pygame.draw.circle(screen, position[0], (pos_x, pos_y), 10)
 
     # Desenhar os aeroportos
     for color,pos in airport_positions.items():

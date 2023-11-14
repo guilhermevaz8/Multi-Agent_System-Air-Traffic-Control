@@ -52,23 +52,24 @@ class Environment:
             json.dump(self.airport_positions, file)
             print("Airport Positions Saved as JSON File")
     
-    def generate_final_position(self, initial_position):
-        available_airports = list(self.airport_positions.values())
-        available_airports.remove(initial_position)  # Remove the initial position from the available options
-        final_position = random.choice(available_airports)
-        return final_position
+    def generate_final_position(self, initial_position, last_airport):
+        tmp = self.airport_positions.copy()
+        tmp.pop(last_airport)
+        available_airports = list(tmp.items())
+        destination = random.choice(available_airports)
+        return destination
 
-    def update_aircraft_position(self, aircraft_id, position):
-        self.aircraft_positions[aircraft_id] = position
+    def update_aircraft_position(self, aircraft_id, position, color):
+        self.aircraft_positions[aircraft_id] = (color, position)
         self.save_aircraf_positions()
         self.detect_conflicts()
 
     def move_aircraft(self):
         for aircraft_id, position in self.aircraft_positions.items():
-            if isinstance(position, tuple) and len(position) == 2:
-                new_x = position[0]
-                new_y = position[1] 
-                self.aircraft_positions[aircraft_id] = (new_x, new_y)
+            if isinstance(position[1], tuple) and len(position[1]) == 2:
+                new_x = position[1][0]
+                new_y = position[1][1] 
+                self.aircraft_positions[aircraft_id] = (position[0],(new_x, new_y))
             #print(f"Moved aircraft {aircraft_id} to position {self.aircraft_positions[aircraft_id]}")
     
     def save_aircraf_positions(self):
@@ -76,12 +77,13 @@ class Environment:
             print("Saving aircraft postions to JSON")
             json.dump(self.aircraft_positions, file)
             print("Aircraft Postions Saved to JSON")
+            print("-------------------------------")
 
     def detect_conflicts(self):
         self.conflict_zones = []
         for id1, pos1 in self.aircraft_positions.items():
             for id2, pos2 in self.aircraft_positions.items():
-                if id1 != id2 and self.is_close(pos1, pos2):
+                if id1 != id2 and self.is_close(pos1[1], pos2[1]):
                     self.conflict_zones.append((id1, id2))
 
     def is_close(self, pos1, pos2, min_distance=10):
@@ -99,7 +101,7 @@ class Environment:
     def generate_alternative_route(self, aircraft_id):
         pos=self.aircraft_positions[aircraft_id]
         goal=self.airport_positions["MAGENTA"]
-        path = a_star_search(self.grid,pos,goal)
+        path = a_star_search(self.grid,pos[1],goal)
         return (path)
 
     def update_weather(self, weather_data):
@@ -170,14 +172,18 @@ class AirTrafficControlAgent(Agent):
 
 
 class AircraftAgent(Agent):
-    def __init__(self, jid, password, environment, pos):
+    def __init__(self, jid, password, environment, position, last_airport):
         super().__init__(jid, password)
         self.environment = environment
         self.id = self.extract_id(jid)
-        self.position = pos
+        self.position = position
+        self.last_airport = last_airport
         self.route=[]
-        self.final_position = self.environment.generate_final_position(pos)  # Pass the initial position
-        self.environment.update_aircraft_position(self.id, pos)
+        destination = self.environment.generate_final_position(self.position,self.last_airport)  # Pass the initial position
+        self.destination_airport = destination[0]
+        self.final_position = destination[1]
+        self.environment.update_aircraft_position(self.id, self.position, self.destination_airport)
+
 
     def extract_id(self, jid):
         # Extrair o ID do JID do agente
@@ -220,15 +226,10 @@ class AircraftAgent(Agent):
 
     def update_position(self):
         # Atualizar a posição da aeronave no ambiente
-        i=0
-        #print(self.environment.grid)
-        #print(self.position)
-        #print(self.environment.airport_positions["WHITE"])
         self.grid=self.environment.grid
         self.route=a_star_search(self.environment.grid,self.position,self.final_position)
-        print(self.position)
         self.position = (self.route[0][0],self.route[0][1])
-        self.environment.update_aircraft_position(self.id, self.position)
+        self.environment.update_aircraft_position(self.id, self.position, self.destination_airport)
 
 
 async def main():
@@ -236,9 +237,6 @@ async def main():
     atc_environment = Environment()
     
     atc_environment.generate_airport()
-
-    for airport in atc_environment.airport_positions:
-        print(airport)
 
     # Verificar e criar o arquivo de posições dos aeroportos, se necessário
     if not os.path.exists("airport_positions.json"):
@@ -257,14 +255,11 @@ async def main():
     # Inicializar e iniciar os agentes de aeronaves
     aircraft_agents = []
     for i in range(5):
-        airport_positions = atc_environment.airport_positions.values()
-        pos = random.choice(list(airport_positions))
-        agent = AircraftAgent(f"airplane{i}@localhost", "password", atc_environment, pos)
+        pos = random.choice(list(atc_environment.airport_positions.items()))
+        agent = AircraftAgent(f"airplane{i}@localhost", "password", atc_environment, pos[1], pos[0])
         aircraft_agents.append(agent)
         await agent.start(auto_register=True)
 
-
-    atc_environment.save_aircraf_positions()
     # Loop principal
     for aircraft_agent in aircraft_agents:
         print("--------------------------------")
