@@ -25,7 +25,6 @@ class Environment:
     def generate_airport(self):
         DISTANCE_BET_AIRP = 15
         airport_colors = ["RED","GREEN","YELLOW","MAGENTA","WHITE"] 
-        print("Esta cena aqui deu")
         for i in range(5):
             pos = (randint(2,38),randint(2,28))
             if self.airport_positions == {}:
@@ -46,9 +45,9 @@ class Environment:
                     mindist=False
             self.airport_positions[airport_colors[i]]=pos
         with open("airport_positions.json", "w") as file:
-            print("vou escrever2")
+            print("Saving airport positions to JSON")
             json.dump(self.airport_positions, file)
-            print("escrevi2")
+            print("Airport Positions Saved as JSON File")
 
     def update_aircraft_position(self, aircraft_id, position):
         self.aircraft_positions[aircraft_id] = position
@@ -57,14 +56,16 @@ class Environment:
     def move_aircraft(self):
         for aircraft_id, position in self.aircraft_positions.items():
             if isinstance(position, tuple) and len(position) == 2:
-                new_x = position[0] + random.randint(-1, 1)
-                new_y = position[1] + random.randint(-1, 1)
+                new_x = position[0]
+                new_y = position[1] 
                 self.aircraft_positions[aircraft_id] = (new_x, new_y)
-            print(f"Moved aircraft {aircraft_id} to position {self.aircraft_positions[aircraft_id]}")
+            #print(f"Moved aircraft {aircraft_id} to position {self.aircraft_positions[aircraft_id]}")
+    
+    def save_aircraf_positions(self):
         with open("aircraft_positions.json", "w") as file:
-            print("vou escrever")
+            print("Saving aircraft postions to JSON")
             json.dump(self.aircraft_positions, file)
-            print("escrevi")
+            print("Aircraft Postions Saved to JSON")
 
     def detect_conflicts(self):
         self.conflict_zones = []
@@ -120,9 +121,7 @@ class AirTrafficControlAgent(Agent):
 
         async def run(self):
             print("EnvironmentInteraction behavior is running")
-            print(self.first)
             if (self.first != True):
-                print("aqui")
                 # Atualizar a posição das aeronaves
                 self.agent.environment.move_aircraft()
                 first=True
@@ -156,7 +155,7 @@ class AirTrafficControlAgent(Agent):
 
             # Enviar a mensagem
             await self.send(msg)
-            print(f"Sent new route to aircraft {aircraft_id}: {new_route}")
+            #print(f"Sent new route to aircraft {aircraft_id}: {new_route}")
 
 
 
@@ -179,7 +178,7 @@ class AircraftAgent(Agent):
     class AircraftInteraction(CyclicBehaviour):
         async def run(self):
             # Atualizar a posição da aeronave
-            self.agent.update_position()
+            #self.agent.update_position()
 
             # Comunicar posição atual para o ATC
             await self.send_instruction_to_atc(self.agent.position)
@@ -201,7 +200,7 @@ class AircraftAgent(Agent):
             msg = await self.receive(timeout=1)  # Esperar por uma mensagem por um tempo limite
             if msg:
                 new_route = msg.body
-                print(f"Received new route instructions: {new_route}")
+                #print(f"Received new route instructions: {new_route}")
                 # Atualizar a rota da aeronave conforme necessário
 
     def update_position(self):
@@ -236,11 +235,16 @@ async def main():
     # Inicializar e iniciar os agentes de aeronaves
     aircraft_agents = []
     for i in range(5):
-        pos = (random.randint(2, 38), random.randint(2, 28))
+        airport_positions = atc_environment.airport_positions.values()
+        pos = random.choice(list(airport_positions))
+        print(airport_positions)
+        print(pos)
         agent = AircraftAgent(f"airplane{i}@localhost", "password", atc_environment, pos)
         aircraft_agents.append(agent)
         await agent.start(auto_register=True)
 
+
+    atc_environment.save_aircraf_positions()
     # Loop principal
     while True:
         await asyncio.sleep(1)  # Intervalo de atualização
