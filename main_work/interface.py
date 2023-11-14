@@ -10,14 +10,16 @@ def load_aircraft_positions():
     try:
         with open("aircraft_positions.json", "r") as file:
             return json.load(file)
-    except FileNotFoundError:
+    except json.decoder.JSONDecodeError:
+        print("File is empty")
         return {}
     
 def load_airport_positions():
     try:
         with open("airport_positions.json", "r") as file:
             return json.load(file)
-    except FileNotFoundError:
+    except json.decoder.JSONDecodeError:
+        print("File is empty")
         return {}
 
 # Configuração da janela do Pygame

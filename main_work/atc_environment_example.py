@@ -61,7 +61,7 @@ class Environment:
 
     def update_aircraft_position(self, aircraft_id, position, color):
         self.aircraft_positions[aircraft_id] = (color, position)
-        self.save_aircraf_positions()
+        self.save_aircraft_positions(aircraft_id)
         self.detect_conflicts()
 
     def move_aircraft(self):
@@ -72,11 +72,11 @@ class Environment:
                 self.aircraft_positions[aircraft_id] = (position[0],(new_x, new_y))
             #print(f"Moved aircraft {aircraft_id} to position {self.aircraft_positions[aircraft_id]}")
     
-    def save_aircraf_positions(self):
+    def save_aircraft_positions(self, aircrafr_id):
         with open("aircraft_positions.json", "w") as file:
-            print("Saving aircraft postions to JSON")
+            print(f"Saving aircraft {aircrafr_id} position ({self.aircraft_positions[aircrafr_id]}) to JSON")
             json.dump(self.aircraft_positions, file)
-            print("Aircraft Postions Saved to JSON")
+            print(f"Aircraft {aircrafr_id} Position Saved to JSON")
             print("-------------------------------")
 
     def detect_conflicts(self):
@@ -207,6 +207,9 @@ class AircraftAgent(Agent):
 
             self.agent.update_position()
 
+            if self.agent.position == self.agent.final_position:
+                self.agent.get_new_destination()
+
             await asyncio.sleep(1)
 
         #async def send_instruction_to_atc(self, position):
@@ -229,7 +232,14 @@ class AircraftAgent(Agent):
         self.grid=self.environment.grid
         self.route=a_star_search(self.environment.grid,self.position,self.final_position)
         self.position = (self.route[0][0],self.route[0][1])
+        print(f"Aircraft {self.id} moving to {self.position}")
         self.environment.update_aircraft_position(self.id, self.position, self.destination_airport)
+
+    def get_new_destination(self):
+        self.last_airport = self.destination_airport
+        destination = self.environment.generate_final_position(self.position,self.last_airport)  # Pass the initial position
+        self.destination_airport = destination[0]
+        self.final_position = destination[1]
 
 
 async def main():
@@ -259,12 +269,6 @@ async def main():
         agent = AircraftAgent(f"airplane{i}@localhost", "password", atc_environment, pos[1], pos[0])
         aircraft_agents.append(agent)
         await agent.start(auto_register=True)
-
-    # Loop principal
-    for aircraft_agent in aircraft_agents:
-        print("--------------------------------")
-        print(aircraft_agent.final_position, aircraft_agent.position)
-
 
     while True:
         await asyncio.sleep(1)  # Intervalo de atualização
