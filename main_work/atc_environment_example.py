@@ -8,14 +8,16 @@ import spade
 import random
 import json
 import os
+from a import a_star_search
 from random import randint
 from math import dist
-
+import numpy as np
 
 
 
 class Environment:
     def __init__(self):
+        self.grid=np.zeros((40,30))
         self.aircraft_positions = {}
         self.weather_conditions = {}
         self.runway_status = {}
@@ -44,6 +46,7 @@ class Environment:
                 else:
                     mindist=False
             self.airport_positions[airport_colors[i]]=pos
+            #self.grid[pos[0]][pos[1]]=1
         with open("airport_positions.json", "w") as file:
             print("Saving airport positions to JSON")
             json.dump(self.airport_positions, file)
@@ -51,6 +54,7 @@ class Environment:
 
     def update_aircraft_position(self, aircraft_id, position):
         self.aircraft_positions[aircraft_id] = position
+        self.save_aircraf_positions()
         self.detect_conflicts()
 
     def move_aircraft(self):
@@ -87,10 +91,10 @@ class Environment:
         return []
 
     def generate_alternative_route(self, aircraft_id):
-        # Gerar uma rota aleatória como exemplo
-        new_x = random.randint(2, 38)
-        new_y = random.randint(2, 28)
-        return (new_x, new_y)
+        pos=self.aircraft_positions[aircraft_id]
+        goal=self.airport_positions["MAGENTA"]
+        path = a_star_search(self.grid,pos,goal)
+        return (path)
 
     def update_weather(self, weather_data):
         self.weather_conditions = weather_data
@@ -165,6 +169,7 @@ class AircraftAgent(Agent):
         self.environment = environment
         self.id = self.extract_id(jid)
         self.position = pos
+        self.route=[]
         self.environment.update_aircraft_position(self.id, pos)
 
     def extract_id(self, jid):
@@ -177,38 +182,49 @@ class AircraftAgent(Agent):
 
     class AircraftInteraction(CyclicBehaviour):
         async def run(self):
+            
+            
             # Atualizar a posição da aeronave
-            #self.agent.update_position()
 
             # Comunicar posição atual para o ATC
-            await self.send_instruction_to_atc(self.agent.position)
+            #await self.send_instruction_to_atc(self.agent.position)
 
             # Aguardar instruções de rota do ATC
-            await self.receive_route_instructions()
+            #await self.receive_route_instructions()
+
+            self.agent.update_position()
 
             await asyncio.sleep(3)
 
-        async def send_instruction_to_atc(self, position):
+        #async def send_instruction_to_atc(self, position):
             # Enviar posição atual para o ATC
-            msg = Message(to="atc_agent@localhost")
-            msg.set_metadata("performative", "inform")
-            msg.body = f"Aircraft {self.agent.id} at position {position} requesting instructions."
-            await self.send(msg)
+         #   msg = Message(to="atc_agent@localhost")
+          #  msg.set_metadata("performative", "inform")
+           # msg.body = f"Aircraft {self.agent.id} at position {position} requesting instructions."
+            #await self.send(msg)
 
-        async def receive_route_instructions(self):
+        #async def receive_route_instructions(self):
             # Receber instruções de rota do ATC
-            msg = await self.receive(timeout=1)  # Esperar por uma mensagem por um tempo limite
-            if msg:
-                new_route = msg.body
-                #print(f"Received new route instructions: {new_route}")
+         #   msg = await self.receive(timeout=1)  # Esperar por uma mensagem por um tempo limite
+          #  if msg:
+           #     self.route= msg.body
+            #    print(f"Received new route instructions: {self.route}")
                 # Atualizar a rota da aeronave conforme necessário
 
     def update_position(self):
         # Atualizar a posição da aeronave no ambiente
-        new_x = random.randint(2, 38)
-        new_y = random.randint(2, 28)
-        self.position = (new_x, new_y)
+        i=0
+        #print(self.environment.grid)
+        #print(self.position)
+        #print(self.environment.airport_positions["WHITE"])
+        self.grid=self.environment.grid
+        self.route=a_star_search(self.environment.grid,self.position,self.environment.airport_positions["WHITE"])
+        print(self.position)
+        self.position = (self.route[0][0],self.route[0][1])
+        print(self.route)
+        print(self.position)
         self.environment.update_aircraft_position(self.id, self.position)
+
 
 async def main():
     # Inicializar o ambiente
@@ -237,8 +253,8 @@ async def main():
     for i in range(5):
         airport_positions = atc_environment.airport_positions.values()
         pos = random.choice(list(airport_positions))
-        print(airport_positions)
-        print(pos)
+        #print(airport_positions)
+        #print(pos)
         agent = AircraftAgent(f"airplane{i}@localhost", "password", atc_environment, pos)
         aircraft_agents.append(agent)
         await agent.start(auto_register=True)
