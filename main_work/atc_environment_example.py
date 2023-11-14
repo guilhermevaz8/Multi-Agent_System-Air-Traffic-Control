@@ -57,8 +57,8 @@ class Environment:
     def move_aircraft(self):
         for aircraft_id, position in self.aircraft_positions.items():
             if isinstance(position, tuple) and len(position) == 2:
-                new_x = position[0] + random.randint(-10, 10)
-                new_y = position[1] + random.randint(-10, 10)
+                new_x = position[0] + random.randint(-1, 1)
+                new_y = position[1] + random.randint(-1, 1)
                 self.aircraft_positions[aircraft_id] = (new_x, new_y)
             print(f"Moved aircraft {aircraft_id} to position {self.aircraft_positions[aircraft_id]}")
         with open("aircraft_positions.json", "w") as file:
@@ -87,8 +87,8 @@ class Environment:
 
     def generate_alternative_route(self, aircraft_id):
         # Gerar uma rota aleatória como exemplo
-        new_x = random.randint(0, 1000)
-        new_y = random.randint(0, 1000)
+        new_x = random.randint(2, 38)
+        new_y = random.randint(2, 28)
         return (new_x, new_y)
 
     def update_weather(self, weather_data):
@@ -206,8 +206,8 @@ class AircraftAgent(Agent):
 
     def update_position(self):
         # Atualizar a posição da aeronave no ambiente
-        new_x = random.randint(0, 1000)
-        new_y = random.randint(0, 1000)
+        new_x = random.randint(2, 38)
+        new_y = random.randint(2, 28)
         self.position = (new_x, new_y)
         self.environment.update_aircraft_position(self.id, self.position)
 
@@ -236,7 +236,7 @@ async def main():
     # Inicializar e iniciar os agentes de aeronaves
     aircraft_agents = []
     for i in range(5):
-        pos = (random.randint(0, 100), random.randint(0, 100))
+        pos = (random.randint(2, 38), random.randint(2, 28))
         agent = AircraftAgent(f"airplane{i}@localhost", "password", atc_environment, pos)
         aircraft_agents.append(agent)
         await agent.start(auto_register=True)
