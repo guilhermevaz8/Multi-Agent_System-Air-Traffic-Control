@@ -14,6 +14,7 @@ class AeroportoAgent(Agent):
         self.isFree = True
         self.position = position
         self.badWeather = False     
+        self.routes = {}
 
     
     def change_isFree_status(self, value):
@@ -26,48 +27,37 @@ class AeroportoAgent(Agent):
         else:
             self.badWeather = True
 
-    def airplane_departure(self):
-        self.rng_badWeather()
-        if self.badWeather:
-            # enviar mensagem a dizer que não pode levantar voo
-            return
-        #enviar mensagem a dizer que pode levantar
-        self.change_isFree_status(True)
 
-    async def refuse_landing(self, recieverJID):
+    async def send_answer(self, recieverJID, answer, request):
         msg = Message()
         msg.to = str(recieverJID)
         msg.sender = str(self.agent.jid)
-        msg.body = "Landing rejected"
-        msg.set_metadata("request_answer","no")
-        
-        await self.send(msg)
+        msg.body = request + "rejected" if answer == "no" else request + "accepted"
+        msg.set_metadata("request_answer",answer)
+        msg.set_metadata("request_type", request)
 
+        await self.send(msg)
 
 
     async def setup(self):
         template = Template()
         template.to = str(self.jid)
-        template.set_metadata("request","landing")
+        template.set_metadata("request","Landing")
 
         self.add_behaviour(self.AeroportoBehaviour(),template)
 
     class AeroportoBehaviour(spade.behaviour.CyclicBehaviour):
         async def run(self):
-            msg = await self.receive(timeout=5) # wait for a message for 10 seconds
+            msg = await self.receive() # wait for a message for 10 seconds
 
             request_type = msg.metadata["request"]
-            if request_type == "landing":
-                if self.agent.badWeather:
-                    self.refuse_landing(msg.sender)
+            if request_type == "Landing":
+                answer = "no" if self.agent.badWeather or not self.agent.isFree else "yes"
+                if answer == "yes":
+                    self.agent.change_isFree_status(False)
+            else:
+                answer = "no" if self.agent.badWeather else "yes"
+                if answer == "yes":
+                    self.agent.change_isFree_status(True)
+            self.agent.send_answer(msg.sender, answer, request_type)
                     
-            
-
-
-
-async def main():
-    aeroporto = AeroportoAgent("ola@localhost","1234","ola",(1,2))
-    await aeroporto.start(auto_register=True)
-
-spade.run(main())
-
