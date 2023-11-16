@@ -15,6 +15,7 @@ class AeroportoAgent(Agent):
         self.position = position
         self.badWeather = False     
         self.routes = {}
+        self.sector = 0
 
     
     def change_isFree_status(self, value):

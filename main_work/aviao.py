@@ -21,19 +21,76 @@ class Avião(Agent):
         self.environment = environment
         self.position = position
         self.last_airport = last_airport
-        self.environment=[]
+        self.generate_new_destination()
+        self.phase = "levantar"
+
+    def generate_new_destination(self):
         destination = self.environment.generate_final_position(self.position,self.last_airport)  # Pass the initial position
         self.destination_airport = destination[0]
         self.final_position = destination[1]
-
+        self.route = self.environment.routes[self.last_airport][self.destination]
 
 
     async def setup(self):
-        self.add_behaviour(self.AircraftInteraction())
+        self.add_behaviour(self.MainLoop())
 
-    class AircraftInteraction(CyclicBehaviour):
-        
+    class MainLoop(CyclicBehaviour):
         async def run(self):
+            if self.agent.phase == "levantar":
+                self.agent.add_behaviour(self.agent.AircraftAirportDepart())
+            elif self.agent.phase == "moving":
+                self.agent.add_behaviour(self.agent.AircraftMoving())
+            
+
+    class AircraftAirportDepart(CyclicBehaviour):
+        async def run(self):
+            msg = Message()
+            msg.to = self.agent.last_airport
+            msg.sender = str(self.agent.jid)
+            msg.body = "Permition to takeoff?"
+            msg.set_metadata("request_type", "Takeoff")
+
+            await self.send(msg)
+
+            msg_answer = await self.receive()
+            answer = msg_answer.metadata["request_answer"]
+            if answer == "yes":
+                self.agent.phase = "moving"
+                await self.agent.stop()
+
+    class AircraftMoving(CyclicBehaviour):  
+        async def run(self):
+            msg = Message()
+            msg.to = "gestor@localhost"
+            msg.sender = str(self.agent.jid)
+            msg.body = "Which airplanes are in my sector?"
+            msg.set_metadata("request_type", "sectors")
+
+            await self.send(msg)
+            
+            msg_answer = await self.receive()
+            jids_list = msg_answer.metadata["request_answer"].split(" ")
+
+            airplanes_position=[]
+
+            for jid in jids_list:
+                msg = Message()
+                msg.to = jid
+                msg.sender = str(self.agent.jid)
+                msg.body = "What is your position?"
+                msg.set_metadata("request_type", "position")
+
+                await self.send(msg)
+                msg_answer = await self.receive()
+
+                position = msg_answer["request_answer"].split(" ")
+                airplanes_position.append(position)
+
+            
+
+
+
+
             await self.send_instruction_to_atc(self.agent.position)
 
             await self.receive_pos()            # Aguardar instruções de rota do ATC
