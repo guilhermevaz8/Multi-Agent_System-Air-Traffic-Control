@@ -34,6 +34,9 @@ aircraft_color = (0, 0, 0)       # Preto
 
 airport_positions=load_airport_positions()
 
+bg = pygame.image.load("night-sky.png")
+
+
 
 # Loop principal
 while True:
@@ -44,7 +47,7 @@ while True:
 
     aircraft_positions = load_aircraft_positions()
 
-    screen.fill(background_color)
+    screen.blit(bg, (0,0))
 
     # Desenhar as aeronaves
     for aircraft_id, position in aircraft_positions.items():
