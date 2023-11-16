@@ -2,7 +2,7 @@ import heapq
 from math import dist
 
 def heuristic(a, b):
-    return dist(a,b)  # Distância de Manhattan
+    return dist(a,b)  # Distância Euclidiana
 
 def a_star_search(grid, start, goal):
     neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0),(-1,-1),(-1,1),(1,-1),(1,1)]  # Movimentos possíveis
