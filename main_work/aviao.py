@@ -7,6 +7,7 @@ import spade
 import random
 import json
 import os
+from a import a_star_search
 from random import randint
 from math import dist
 import numpy as np
@@ -14,17 +15,17 @@ import numpy as np
 
 
 
-class AircraftAgent(Agent):
+class Avião(Agent):
     def __init__(self, jid, password, environment, position, last_airport):
         super().__init__(jid, password)
         self.environment = environment
         self.position = position
         self.last_airport = last_airport
-        self.route=[]
+        self.environment=[]
         destination = self.environment.generate_final_position(self.position,self.last_airport)  # Pass the initial position
         self.destination_airport = destination[0]
         self.final_position = destination[1]
-        self.environment.update_aircraft_position(self.id, self.position, self.destination_airport)
+
 
 
     async def setup(self):
