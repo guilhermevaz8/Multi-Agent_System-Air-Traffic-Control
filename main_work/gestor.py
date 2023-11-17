@@ -18,6 +18,7 @@ class Environment:
     def __init__(self):
         self.aircraft_positions = {}
         self.airport_positions = {}
+        self.routes = {}
 
     def generate_airport(self):
         DISTANCE_BET_AIRP = 15
@@ -42,6 +43,7 @@ class Environment:
                     mindist=False
             self.airport_positions[airport_colors[i]]=pos
             #self.grid[pos[0]][pos[1]]=1
+            print(self.airport_positions)
         with open("airport_positions.json", "w") as file:
             print("Saving airport positions to JSON")
             json.dump(self.airport_positions, file)
@@ -95,5 +97,4 @@ class gestor_espaco(Agent):
             if self.agent.count==5:
                 self.agent.count=0
                 self.environment.save_aircraft_positions()
-
-
+    

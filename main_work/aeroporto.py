@@ -50,15 +50,15 @@ class AeroportoAgent(Agent):
     class AeroportoBehaviour(spade.behaviour.CyclicBehaviour):
         async def run(self):
             msg = await self.receive() # wait for a message for 10 seconds
-
-            request_type = msg.metadata["request"]
-            if request_type == "Landing":
-                answer = "no" if self.agent.badWeather or not self.agent.isFree else "yes"
-                if answer == "yes":
-                    self.agent.change_isFree_status(False)
-            else:
-                answer = "no" if self.agent.badWeather else "yes"
-                if answer == "yes":
-                    self.agent.change_isFree_status(True)
-            self.agent.send_answer(msg.sender, answer, request_type)
+            if msg:
+                request_type = msg.metadata["request"]
+                if request_type == "Landing":
+                    answer = "no" if self.agent.badWeather or not self.agent.isFree else "yes"
+                    if answer == "yes":
+                        self.agent.change_isFree_status(False)
+                else:
+                    answer = "no" if self.agent.badWeather else "yes"
+                    if answer == "yes":
+                        self.agent.change_isFree_status(True)
+                self.agent.send_answer(msg.sender, answer, request_type)
                     
