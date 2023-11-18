@@ -33,10 +33,11 @@ class Avião(Agent):
         print(f"pos = {position}, last_air = {last_airport}")
         self.environment = environment
         self.position = position
-        self.grif=np.zeros((40,30))
+        self.grid=np.zeros((40,30))
         self.last_airport = last_airport
         self.generate_new_destination()
         self.phase = "levantar"
+        self.count=0
         
 
 
@@ -64,12 +65,14 @@ class Avião(Agent):
         
     async def setup(self):
         self.add_behaviour(self.MainLoop())
-        self.add_behaviour(self.AircraftComs())
+        #self.add_behaviour(self.AircraftComs())
     
     class MainLoop(CyclicBehaviour):
         async def run(self):
             if self.agent.phase == "levantar":
-                self.agent.add_behaviour(self.agent.AircraftAirportDepart())
+                if self.agent.count==0:
+                    self.agent.add_behaviour(self.agent.AircraftAirportDepart())
+                    self.agent.count=1
             elif self.agent.phase == "moving":
                 self.agent.add_behaviour(self.agent.AircraftMoving())
             elif self.agent.phase == "landing":
@@ -92,18 +95,19 @@ class Avião(Agent):
         async def run(self):
             msg = Message()
             msg.to = f"{self.agent.last_airport}@localhost"
-            msg.sender = str(self.agent.jid)
+            #msg.sender = str(self.agent.jid)
             msg.body = "Permition to takeoff?"
-            msg.set_metadata("request_type", "Takeoff")
-
+            msg.set_metadata("request", "takeoff")
             await self.send(msg)
-
-            msg_answer = await self.receive()
+            await asyncio.sleep(1)
+            
+            msg_answer = await self.receive(timeout=10)
             if msg_answer:
+                print(f"Message received: {msg_answer}")
                 answer = msg_answer.metadata["request_answer"]
                 if answer == "yes":
                     self.agent.phase = "moving"
-                    await self.agent.stop()
+                    await self.stop()
 
     class AircraftMoving(CyclicBehaviour):
         async def run(self):
@@ -130,8 +134,8 @@ class Avião(Agent):
                 self.agent.environment.update_grid(position)
 
             conflict = self.agent.check_route_conflict()
-            while conflict==False:
-                self.agent.route=a_star_search(self.environment.grid,self.agent.position,self.agent.final_position)
+            while conflict==True:
+                self.agent.route=a_star_search(self.agent.grid,self.agent.position,self.agent.final_position)
                 conflict = self.agent.check_route_conflict()
             self.position = self.agent.route[0]
 
@@ -139,7 +143,7 @@ class Avião(Agent):
             msg = Message()
             msg.to = "gestor@localhost"
             msg.sender = str(self.agent.jid)
-            msg.body = self.position
+            msg.body = str(self.position)
             msg.set_metadata("request_type", "update_position")
             await self.send(msg)
 
@@ -306,29 +310,30 @@ class AeroportoAgent(Agent):
             self.badWeather = True
 
 
-    async def send_answer(self, recieverJID, answer, request):
+    async def send_answer(self, msg_sender, answer, request_type):
         msg = Message()
-        msg.to = str(recieverJID)
+        msg.to = str(msg.sender)
         msg.sender = str(self.agent.jid)
-        msg.body = request + "rejected" if answer == "no" else request + "accepted"
+        msg.body = request_type + " rejected" if answer == "no" else request_type + " accepted"
         msg.set_metadata("request_answer",answer)
-        msg.set_metadata("request_type", request)
-
+        msg.set_metadata("request_type", request_type)
+        print(msg.body)
         await self.send(msg)
 
 
     async def setup(self):
-        template = Template()
-        template.to = str(self.jid)
-        template.set_metadata("request","Landing")
-
+        template=Template()
+        template.to=str(self.jid)
         self.add_behaviour(self.AeroportoBehaviour(),template)
 
-    class AeroportoBehaviour(spade.behaviour.CyclicBehaviour):
+    class AeroportoBehaviour(CyclicBehaviour):
         async def run(self):
-            msg = await self.receive() # wait for a message for 10 seconds
+            msg = await self.receive(timeout=10) # wait for a message for 10 seconds
             if msg:
+                print("Message receivedaaaaaaa")
+                print(f"Message received: {msg}")
                 request_type = msg.metadata["request"]
+                print(f"Request type: {request_type}")
                 if request_type == "Landing":
                     answer = "no" if self.agent.badWeather or not self.agent.isFree else "yes"
                     if answer == "yes":
@@ -337,7 +342,16 @@ class AeroportoAgent(Agent):
                     answer = "no" if self.agent.badWeather else "yes"
                     if answer == "yes":
                         self.agent.change_isFree_status(True)
-                self.agent.send_answer(msg.sender, answer, request_type)
+                receiver=str(msg.sender)
+                msg = Message()
+                msg.to = receiver
+                msg.sender = str(self.agent.jid)
+                msg.body = request_type + " rejected" if answer == "no" else request_type + " accepted"
+                msg.set_metadata("request_answer",answer)
+                msg.set_metadata("request_type", request_type)
+                print(msg.body)
+                await self.send(msg)
+
                     
 
 
@@ -374,7 +388,7 @@ async def main():
     for key in environment.airport_positions:
         value=environment.airport_positions[key]
         print(f"Starting the agent airport_agent at position:{value}...")
-        agentAirport = AeroportoAgent(f"{key}@localhost", "password", environment,value)
+        agentAirport = AeroportoAgent(f"{key.lower()}@localhost", "password", environment,value)
         airport_agent.append(agentAirport)
         print(f"Agent airport_agent at position:{agentAirport.position} created successfully")
         await agentAirport.start(auto_register=True)
