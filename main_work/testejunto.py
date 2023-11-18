@@ -45,8 +45,10 @@ class Avião(Agent):
         print(f"Destination chosen: {destination}")
         self.destination_airport = destination[0]
         self.final_position = destination[1]
-        print(f"Rota para {self.destination_airport} : {self.environment.routes[self.last_airport]}")
-        self.route = self.environment.routes[self.last_airport][self.destination_airport]
+        print(f"Initial position: {self.position}")
+        print(f"Final position: {self.final_position}")
+        print(f"Rota para {self.destination_airport} : {self.environment.routes[self.position][self.final_position]}")
+        self.route = self.environment.routes[self.position][self.final_position]
     
     def update_grid(self, position):
         for x in range(position[0] - 1, position[0] + 2):
@@ -61,8 +63,8 @@ class Avião(Agent):
         return False
         
     async def setup(self):
-        self.agent.add_behaviour(self.MainLoop())
-        self.agent.add_behaviour(self.agent.AircraftComs())
+        self.add_behaviour(self.MainLoop())
+        self.add_behaviour(self.AircraftComs())
     
     class MainLoop(CyclicBehaviour):
         async def run(self):
@@ -89,7 +91,7 @@ class Avião(Agent):
     class AircraftAirportDepart(CyclicBehaviour):
         async def run(self):
             msg = Message()
-            msg.to = self.agent.last_airport
+            msg.to = f"{self.agent.last_airport}@localhost"
             msg.sender = str(self.agent.jid)
             msg.body = "Permition to takeoff?"
             msg.set_metadata("request_type", "Takeoff")
@@ -97,10 +99,11 @@ class Avião(Agent):
             await self.send(msg)
 
             msg_answer = await self.receive()
-            answer = msg_answer.metadata["request_answer"]
-            if answer == "yes":
-                self.agent.phase = "moving"
-                await self.agent.stop()
+            if msg_answer:
+                answer = msg_answer.metadata["request_answer"]
+                if answer == "yes":
+                    self.agent.phase = "moving"
+                    await self.agent.stop()
 
     class AircraftMoving(CyclicBehaviour):
         async def run(self):
@@ -119,9 +122,9 @@ class Avião(Agent):
 
                 await self.send(msg)
                 msg_answer = await self.receive()
-
-                position = msg_answer["request_answer"].split(" ")
-                airplanes_position.append(position)
+                if msg_answer:
+                    position = msg_answer["request_answer"].split(" ")
+                    airplanes_position.append(position)
 
             for position in airplanes_position:
                 self.agent.environment.update_grid(position)
@@ -160,12 +163,13 @@ class Avião(Agent):
             await self.send(msg)
 
             msg_answer = await self.receive()
-            answer = msg_answer.metadata["request_answer"]
-            if answer == "yes":
-                self.agent.last_airport = self.agent.destination_airport
-                self.agent.generate_new_destination()
-                self.agent.phase = "levantar"
-                await self.agent.stop()
+            if msg_answer:
+                answer = msg_answer.metadata["request_answer"]
+                if answer == "yes":
+                    self.agent.last_airport = self.agent.destination_airport
+                    self.agent.generate_new_destination()
+                    self.agent.phase = "levantar"
+                    await self.agent.stop()
 
 
 # Import necessary SPADE modules
@@ -176,6 +180,7 @@ class Avião(Agent):
 class Environment:
     def __init__(self):
         self.aircraft_positions = {}
+        self.grid = np.zeros((40,30))
         self.airport_positions = {}
         self.routes = {}
 
@@ -217,6 +222,21 @@ class Environment:
         destination = random.choice(available_airports)
         print(f"Destination: {destination}")
         return destination
+    
+    def generate_all_routes(self):
+        # Inicializar o dicionário de rotas
+
+        # Obter todas as posições dos aeroportos
+        airport_positions = list(self.airport_positions.values())
+
+        # Criar rotas entre todos os pares de posições de aeroportos
+        for start_pos in airport_positions:
+            self.routes[start_pos] = {}
+            for goal_pos in airport_positions:
+                if start_pos != goal_pos:
+                    # Usar o A* para calcular a rota
+                    route = a_star_search(self.grid,start_pos, goal_pos)
+                    self.routes[start_pos][goal_pos] = route
 
 
     def update_position(self,aircraf_id,x,y):
@@ -327,6 +347,7 @@ async def main():
     print("Initializing environment...")
     environment = Environment()
     environment.generate_airport()
+    environment.generate_all_routes()
     print(f"-> Airport positions: {environment.airport_positions}")
 
     print("-> Environment initialized successfully")
@@ -350,9 +371,10 @@ async def main():
     # Inicializar e iniciar o agente de controle do aeroporto 
     airport_agent = []
     i=0
-    for value in environment.airport_positions.values():
+    for key in environment.airport_positions:
+        value=environment.airport_positions[key]
         print(f"Starting the agent airport_agent at position:{value}...")
-        agentAirport = AeroportoAgent(f"airport_agent{i}@localhost", "password", environment,value)
+        agentAirport = AeroportoAgent(f"{key}@localhost", "password", environment,value)
         airport_agent.append(agentAirport)
         print(f"Agent airport_agent at position:{agentAirport.position} created successfully")
         await agentAirport.start(auto_register=True)
