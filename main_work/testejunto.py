@@ -30,7 +30,8 @@ import numpy as np
 class Avião(Agent):
     def __init__(self, jid, password, environment, position, last_airport):
         super().__init__(jid, password)
-        self.environment = Environment()
+        print(f"pos = {position}, last_air = {last_airport}")
+        self.environment = environment
         self.position = position
         self.grif=np.zeros((40,30))
         self.last_airport = last_airport
@@ -40,12 +41,12 @@ class Avião(Agent):
 
 
     def generate_new_destination(self):
-        print("AAAAAAA")
         destination = self.environment.generate_final_position(self.position,self.last_airport)  # Pass the initial position
-        print("AAAAAAA")
+        print(f"Destination chosen: {destination}")
         self.destination_airport = destination[0]
         self.final_position = destination[1]
-        self.route = self.environment.routes[self.last_airport][self.destination]
+        print(f"Rota para {self.destination_airport} : {self.environment.routes[self.last_airport]}")
+        self.route = self.environment.routes[self.last_airport][self.destination_airport]
     
     def update_grid(self, position):
         for x in range(position[0] - 1, position[0] + 2):
@@ -60,7 +61,7 @@ class Avião(Agent):
         return False
         
     async def setup(self):
-        self.add_behaviour(self.MainLoop())
+        self.agent.add_behaviour(self.MainLoop())
         self.agent.add_behaviour(self.agent.AircraftComs())
     
     class MainLoop(CyclicBehaviour):
@@ -209,13 +210,12 @@ class Environment:
     
     def generate_final_position(self, initial_position, last_airport):
         tmp = self.airport_positions.copy()
-        print(self.airport_positions)
+        print(f"Airport positions: {self.airport_positions}")
         print(last_airport)
-        print(tmp)
         tmp.pop(last_airport)
-        print("AAAAAAA")
         available_airports = list(tmp.items())
         destination = random.choice(available_airports)
+        print(f"Destination: {destination}")
         return destination
 
 
@@ -327,10 +327,9 @@ async def main():
     print("Initializing environment...")
     environment = Environment()
     environment.generate_airport()
-    print("ASASASASASASASASASASASINJWVTUIHRRRRRRRRRRRRRRRR")
-    print(environment.airport_positions)
+    print(f"-> Airport positions: {environment.airport_positions}")
 
-    print("Environment initialized successfully")
+    print("-> Environment initialized successfully")
     
     # Verificar e criar o arquivo de posições dos aeroportos, se necessário
     if not os.path.exists("airport_positions.json"):
@@ -350,25 +349,27 @@ async def main():
 
     # Inicializar e iniciar o agente de controle do aeroporto 
     airport_agent = []
+    i=0
     for value in environment.airport_positions.values():
-        print(f"Starting the agent airport_agent{value}...")
-        print("Airport position: ")
-        print(environment.airport_positions)
-        agentAirport = AeroportoAgent("airport_agent{i}@localhost", "password", environment,value)
+        print(f"Starting the agent airport_agent at position:{value}...")
+        agentAirport = AeroportoAgent(f"airport_agent{i}@localhost", "password", environment,value)
         airport_agent.append(agentAirport)
-        print("Agent airport_agent{value} started successfully")
+        print(f"Agent airport_agent at position:{agentAirport.position} created successfully")
         await agentAirport.start(auto_register=True)
+        i+=1
     print("All airport agents started successfully OOOOOOOOOOOOOOOOOO")
+    print(f"Airport positions created: {environment.airport_positions}")
     # Inicializar e iniciar os agentes de aeronaves
     aircraft_agents = []
+    i=0
     for i in range(5):
-        pos= random.choice(list(environment.airport_positions.values()))
-        x,y=pos
+        pos= random.choice(list(environment.airport_positions.items()))
+        airport_color, position=pos
         print(f"Starting the agent airplane{i}...")
-        agentAircraft = Avião(f"airplane{i}@localhost", "password", environment, x, y)
+        agentAircraft = Avião(f"airplane{i}@localhost", "password", environment, position, airport_color)
         aircraft_agents.append(agentAircraft)
         await agentAircraft.start(auto_register=True)
-        print("Agent airplane{i} started successfully")
+        print(f"Agent airplane{i} started successfully")
     while True:
         await asyncio.sleep(1)  # Intervalo de atualização
     
