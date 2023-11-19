@@ -30,7 +30,6 @@ import numpy as np
 class Avião(Agent):
     def __init__(self, jid, password, environment, position, last_airport):
         super().__init__(jid, password)
-        print(f"pos = {position}, last_air = {last_airport}")
         self.environment = environment
         self.position = position
         self.grid=np.zeros((40,30))
@@ -38,17 +37,20 @@ class Avião(Agent):
         self.generate_new_destination()
         self.phase = "levantar"
         self.count=0
+
+        STATE_ONE = "takeoff"
+        STATE_TWO = "moving"
+        STATE_THREE = "landing"
         
 
 
     def generate_new_destination(self):
         destination = self.environment.generate_final_position(self.position,self.last_airport)  # Pass the initial position
-        print(f"Destination chosen: {destination}")
+        print(f"-> Destination chosen: {destination}")
         self.destination_airport = destination[0]
         self.final_position = destination[1]
-        print(f"Initial position: {self.position}")
-        print(f"Final position: {self.final_position}")
-        print(f"Rota para {self.destination_airport} : {self.environment.routes[self.position][self.final_position]}")
+        print(f"\tFinal position: {self.final_position}")
+        print(f"\tRota para {self.destination_airport} : {self.environment.routes[self.position][self.final_position]}")
         self.route = self.environment.routes[self.position][self.final_position]
     
     def update_grid(self, position):
@@ -103,14 +105,15 @@ class Avião(Agent):
             
             msg_answer = await self.receive(timeout=10)
             if msg_answer:
-                print(f"Message received: {msg_answer}")
+                print(f"Message received by {self.agent.jid}: {msg_answer}")
                 answer = msg_answer.metadata["request_answer"]
                 if answer == "yes":
                     self.agent.phase = "moving"
-                    await self.stop()
+                    await self.agent.stop()
 
     class AircraftMoving(CyclicBehaviour):
         async def run(self):
+            print(f"Aircraft {self.agent.jid} is moving!")
             jids_list = []
             for i in range(5):
                 jids_list.append(f"airplane{i}@localhost")
@@ -211,7 +214,6 @@ class Environment:
                     mindist=False
             self.airport_positions[airport_colors[i]]=pos
             #self.grid[pos[0]][pos[1]]=1
-            print(self.airport_positions)
         with open("airport_positions.json", "w") as file:
             print("Saving airport positions to JSON")
             json.dump(self.airport_positions, file)
@@ -219,12 +221,9 @@ class Environment:
     
     def generate_final_position(self, initial_position, last_airport):
         tmp = self.airport_positions.copy()
-        print(f"Airport positions: {self.airport_positions}")
-        print(last_airport)
         tmp.pop(last_airport)
         available_airports = list(tmp.items())
         destination = random.choice(available_airports)
-        print(f"Destination: {destination}")
         return destination
     
     def generate_all_routes(self):
@@ -317,7 +316,6 @@ class AeroportoAgent(Agent):
         msg.body = request_type + " rejected" if answer == "no" else request_type + " accepted"
         msg.set_metadata("request_answer",answer)
         msg.set_metadata("request_type", request_type)
-        print(msg.body)
         await self.send(msg)
 
 
@@ -330,10 +328,8 @@ class AeroportoAgent(Agent):
         async def run(self):
             msg = await self.receive(timeout=10) # wait for a message for 10 seconds
             if msg:
-                print("Message receivedaaaaaaa")
-                print(f"Message received: {msg}")
+                print(f"Message received by {self.agent.jid}: {msg}")
                 request_type = msg.metadata["request"]
-                print(f"Request type: {request_type}")
                 if request_type == "Landing":
                     answer = "no" if self.agent.badWeather or not self.agent.isFree else "yes"
                     if answer == "yes":
@@ -349,7 +345,6 @@ class AeroportoAgent(Agent):
                 msg.body = request_type + " rejected" if answer == "no" else request_type + " accepted"
                 msg.set_metadata("request_answer",answer)
                 msg.set_metadata("request_type", request_type)
-                print(msg.body)
                 await self.send(msg)
 
                     
@@ -393,7 +388,6 @@ async def main():
         print(f"Agent airport_agent at position:{agentAirport.position} created successfully")
         await agentAirport.start(auto_register=True)
         i+=1
-    print("All airport agents started successfully OOOOOOOOOOOOOOOOOO")
     print(f"Airport positions created: {environment.airport_positions}")
     # Inicializar e iniciar os agentes de aeronaves
     aircraft_agents = []
