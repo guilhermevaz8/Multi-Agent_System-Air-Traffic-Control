@@ -129,7 +129,11 @@ class StateTwo(State):
     async def run(self):
         print("Moving...\nMoving...")
         print(f"Aircraft {self.agent.jid} is moving!")
-        jids_list = ["teste2@localhost"]
+        jids_list=[]
+        for i in range(2):
+            jids_list.append(f"airplane{i}@localhost")
+
+        jids_list.remove(str(self.agent.jid))
         
         airplanes_position = []
         
@@ -137,22 +141,26 @@ class StateTwo(State):
             msg = Message()
             msg.to = jid
             msg.body = "What is your position?"
-            msg.set_metadata("request_type", "position")
+            msg.set_metadata("request", "position")
 
             await self.send(msg)
             msg_answer = await self.receive(timeout=10)
             if msg_answer:
-                position = msg_answer["request_answer"].split(" ")
+                position = msg_answer.metadata["request_answer"].split(" ")
                 airplanes_position.append(position)
 
         for position in airplanes_position:
-            self.agent.environment.update_grid(position)
+            self.agent.update_grid(position)
 
         conflict = self.agent.check_route_conflict()
+        print(f"Conflito: {conflict}")
         while conflict==True:
             self.agent.route=a_star_search(self.agent.grid,self.agent.position,self.agent.final_position)
             conflict = self.agent.check_route_conflict()
-        self.position = self.agent.route[0]
+        
+        print(f"Posicao antes: {self.agent.position}")
+        self.agent.position = self.agent.route[0]
+        print(f"Posicao depois: {self.agent.position}")
 
 
       
@@ -165,7 +173,8 @@ class StateTwo(State):
             self.set_next_state(STATE_THREE)
             return
 
-        await asyncio.sleep(1)
+        self.set_next_state(STATE_TWO)
+
 
 
         
@@ -194,7 +203,7 @@ class AirplaneFSMAgent(Agent):
         self.position = position
         self.grid=np.zeros((40,30))
         self.last_airport = last_airport
-        #self.generate_new_destination()
+        self.generate_new_destination()
         self.count=0
 
 
@@ -229,6 +238,7 @@ class AirplaneFSMAgent(Agent):
         fsm.add_transition(source=STATE_TWO, dest=STATE_THREE)
         fsm.add_transition(source=STATE_THREE, dest=STATE_ONE)
         fsm.add_transition(source=STATE_THREE, dest=STATE_TWO)
+        fsm.add_transition(source=STATE_TWO, dest=STATE_TWO)
         self.add_behaviour(fsm)
 
 class AeroportoAgent(Agent):
@@ -268,7 +278,7 @@ class AeroportoAgent(Agent):
 
     class AeroportoBehaviour(CyclicBehaviour):
         async def run(self):
-            msg = await self.receive(timeout=10) # wait for a message for 10 seconds
+            msg = await self.receive(timeout=3) # wait for a message for 10 seconds
             if msg:
                 print(f"Message received by {self.agent.jid}: {msg}")
                 request_type = msg.metadata["request"]
@@ -312,7 +322,7 @@ async def main():
 
     aircraft_agents = []
     i=0
-    for i in range(1):
+    for i in range(2):
         pos= random.choice(list(environment.airport_positions.items()))
         airport_color, position=pos
         print(f"Starting the agent airplane{i}...")
@@ -320,7 +330,7 @@ async def main():
         aircraft_agents.append(agentAircraft)
         print(f"Agent airplane{i} started successfully")
 
-    print(airport_agent)
+
     await asyncio.gather(
        airport_agent[0].start(auto_register=True),
        airport_agent[1].start(auto_register=True),
