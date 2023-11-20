@@ -22,6 +22,7 @@ class Environment:
         self.grid = np.zeros((40,30))
         self.airport_positions = {}
         self.routes = {}
+        self.destinos = {}
 
     def generate_airport(self):
         DISTANCE_BET_AIRP = 15
@@ -82,8 +83,11 @@ class Environment:
     
     def save_aircraft_positions(self):
         with open("aircraft_positions.json", "w") as file:
+            save_data = {}
+            for key, destino in self.destinos.items():
+                save_data[key]=(destino,self.aircraft_positions[key])
             print("Saving aircraft positions to JSON")
-            json.dump(self.aircraft_positions, file)
+            json.dump(save_data, file)
             print("Aircraft Positions Saved to JSON")
             print("-------------------------------")
 
@@ -264,6 +268,7 @@ class AirplaneFSMAgent(Agent):
         print(f"-> Destination chosen: {destination}")
         self.destination_airport = destination[0]
         self.final_position = destination[1]
+        self.environment.destinos[str(self.jid)]=self.destination_airport
         print(f"\tFinal position: {self.final_position}")
         print(f"AP: {self.environment.airport_positions}")
         print(f"\tRota para {self.destination_airport} : {self.environment.routes[self.position][self.final_position]}")
