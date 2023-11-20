@@ -8,6 +8,7 @@ import asyncio
 import json
 from random import randint
 import random
+from spade.template import Template
 
 
 from a import a_star_search
@@ -26,7 +27,7 @@ class Environment:
 
     def generate_airport(self):
         DISTANCE_BET_AIRP = 15
-        airport_colors = ["RED","GREEN"] 
+        airport_colors = ["RED","GREEN","YELLOW","WHITE","MAGENTA"] 
         for i in range(len(airport_colors)):
             pos = (randint(2,38),randint(2,28))
             if self.airport_positions == {}:
@@ -71,6 +72,7 @@ class Environment:
             for goal_pos in airport_positions:
                 if start_pos != goal_pos:
                     # Usar o A* para calcular a rota
+                    print(f"pos start: {start_pos}, pos_final : {goal_pos}")
                     route = a_star_search(self.grid,start_pos, goal_pos)
                     self.routes[start_pos][goal_pos] = route
 
@@ -91,6 +93,27 @@ class Environment:
 
 
 
+
+class AircraftComs(CyclicBehaviour):
+    async def run(self):
+        msg = await self.receive(timeout=1)  # Esperar por uma mensagem por um tempo limite
+        if msg:
+            print(f"Recebi: {msg}")
+            request_type = msg.metadata["request"]
+            if request_type == "position" and "request_answer" not in msg.metadata:
+                msg_res = Message()
+                msg_res.to = str(msg.sender)
+                msg_res.sender = str(self.agent.jid)
+                msg_res.body = "Sending my position"
+                msg_res.set_metadata("request", "position")
+                msg_res.set_metadata("request_answer", str(self.agent.position[0]) + " " + str(self.agent.position[1]))
+                
+                print(f"Enviei: {msg_res}")
+                await self.send(msg_res)
+            elif "request_answer" in msg.metadata:
+                pos = [int(x) for x in msg.metadata["request_answer"].split(" ")]
+                
+                self.agent.airplanes_positions.append(pos)
 
 
 
@@ -113,7 +136,7 @@ class StateOne(State):
         msg.set_metadata("request", "takeoff")
         await self.send(msg)
         msg_answer = await self.receive(timeout=10)
-        if msg_answer:
+        if msg_answer and "request_answer" in msg_answer.metadata:
             print(f"Message received by {self.agent.jid}: {msg_answer}")
             answer = msg_answer.metadata["request_answer"]
             while answer == "no":
@@ -122,6 +145,8 @@ class StateOne(State):
                 msg_answer = await self.receive(timeout=10)
                 answer = msg_answer.metadata["request_answer"]
         
+        await asyncio.sleep(1)
+
         self.set_next_state(STATE_TWO)
 
     
@@ -130,43 +155,56 @@ class StateTwo(State):
         print("Moving...\nMoving...")
         print(f"Aircraft {self.agent.jid} is moving!")
         jids_list=[]
-        for i in range(2):
+        for i in range(5):
             jids_list.append(f"airplane{i}@localhost")
 
         jids_list.remove(str(self.agent.jid))
         
-        airplanes_position = []
         
         for jid in jids_list:
             msg = Message()
             msg.to = jid
+            msg.sender = str(self.agent.jid)
             msg.body = "What is your position?"
             msg.set_metadata("request", "position")
-
+            print(f"Mandei mensagem: {msg}")
             await self.send(msg)
-            msg_answer = await self.receive(timeout=10)
-            if msg_answer:
-                position = msg_answer.metadata["request_answer"].split(" ")
-                airplanes_position.append(position)
+            
+            
+        while len(self.agent.airplanes_positions) < 4:
+            print("ola")
+            print(self.agent.airplanes_positions)
+            await asyncio.sleep(0.5)
 
-        for position in airplanes_position:
+        print(f" ola {self.agent.airplanes_positions}")
+
+        for position in self.agent.airplanes_positions:
             self.agent.update_grid(position)
+        
+        
+
+        print("ola dois")
 
         conflict = self.agent.check_route_conflict()
         print(f"Conflito: {conflict}")
         while conflict==True:
+            print(f"vai errar : {self.agent.final_position}")
             self.agent.route=a_star_search(self.agent.grid,self.agent.position,self.agent.final_position)
+            print("depois do a star")
             conflict = self.agent.check_route_conflict()
         
         print(f"Posicao antes: {self.agent.position}")
         self.agent.position = self.agent.route[0]
         print(f"Posicao depois: {self.agent.position}")
 
+        
 
-      
 
         self.agent.route=self.agent.route[1:]
 
+        self.agent.airplanes_positions=[]
+
+        await asyncio.sleep(1)
         if len(self.agent.route) ==1:
             print("A chegar ao aeroporto")
             print("Vou pedir para aterrar")
@@ -181,6 +219,8 @@ class StateTwo(State):
 
 class StateThree(State):
     async def run(self):
+        self.agent.position = self.agent.route[0]
+        self.agent.route=self.agent.route[1:]
         msg = Message()
         msg.to = f"{self.agent.last_airport}@localhost"
         msg.body = "Permition to land?"
@@ -188,12 +228,14 @@ class StateThree(State):
         await self.send(msg)
         msg_answer = await self.receive(timeout=10)
         print("Ola, estou depois do recieve")
-        if msg_answer:
+        if msg_answer and "request_answer" in msg_answer.metadata:
             print(f"Message received by {self.agent.jid}: {msg_answer}")
             answer = msg_answer.metadata["request_answer"]
             if answer == "no":
                 self.set_next_state(STATE_TWO)
                 return
+        self.agent.last_airport = self.agent.destination_airport
+        self.agent.generate_new_destination()
         self.set_next_state(STATE_ONE)
 
 class AirplaneFSMAgent(Agent):
@@ -205,6 +247,7 @@ class AirplaneFSMAgent(Agent):
         self.last_airport = last_airport
         self.generate_new_destination()
         self.count=0
+        self.airplanes_positions = []
 
 
     def generate_new_destination(self):
@@ -213,6 +256,7 @@ class AirplaneFSMAgent(Agent):
         self.destination_airport = destination[0]
         self.final_position = destination[1]
         print(f"\tFinal position: {self.final_position}")
+        print(f"AP: {self.environment.airport_positions}")
         print(f"\tRota para {self.destination_airport} : {self.environment.routes[self.position][self.final_position]}")
         self.route = self.environment.routes[self.position][self.final_position]
     
@@ -224,6 +268,10 @@ class AirplaneFSMAgent(Agent):
 
     def check_route_conflict(self):
         position=self.route[0]
+        return False
+        print(self.route)
+        position=self.route[0]
+        print(position)
         if self.grid[position[0]][position[1]] == 1:
             return True
         return False
@@ -240,6 +288,9 @@ class AirplaneFSMAgent(Agent):
         fsm.add_transition(source=STATE_THREE, dest=STATE_TWO)
         fsm.add_transition(source=STATE_TWO, dest=STATE_TWO)
         self.add_behaviour(fsm)
+        t = Template()
+        t.set_metadata("request","position")
+        self.add_behaviour(AircraftComs(), template=t)
 
 class AeroportoAgent(Agent):
     def __init__(self, jid, password, environment, position):
@@ -265,7 +316,7 @@ class AeroportoAgent(Agent):
 
     async def send_answer(self, msg_sender, answer, request_type):
         msg = Message()
-        msg.to = str(msg.sender)
+        msg.to = str(msg_sender)
         msg.sender = str(self.agent.jid)
         msg.body = request_type + " rejected" if answer == "no" else request_type + " accepted"
         msg.set_metadata("request_answer",answer)
@@ -282,7 +333,7 @@ class AeroportoAgent(Agent):
             if msg:
                 print(f"Message received by {self.agent.jid}: {msg}")
                 request_type = msg.metadata["request"]
-                if request_type == "Landing":
+                if request_type == "landing":
                     answer = "no" if self.agent.badWeather or not self.agent.isFree else "yes"
                     if answer == "yes":
                         self.agent.change_isFree_status(False)
@@ -290,6 +341,7 @@ class AeroportoAgent(Agent):
                     answer = "no" if self.agent.badWeather else "yes"
                     if answer == "yes":
                         self.agent.change_isFree_status(True)
+                print(answer)
                 receiver=str(msg.sender)
                 msg = Message()
                 msg.to = receiver
@@ -322,7 +374,7 @@ async def main():
 
     aircraft_agents = []
     i=0
-    for i in range(2):
+    for i in range(5):
         pos= random.choice(list(environment.airport_positions.items()))
         airport_color, position=pos
         print(f"Starting the agent airplane{i}...")
@@ -335,7 +387,10 @@ async def main():
        airport_agent[0].start(auto_register=True),
        airport_agent[1].start(auto_register=True),
        aircraft_agents[0].start(auto_register=True),
-       aircraft_agents[1].start(auto_register=True)
+       aircraft_agents[1].start(auto_register=True),
+       aircraft_agents[2].start(auto_register=True),
+       aircraft_agents[3].start(auto_register=True),
+       aircraft_agents[4].start(auto_register=True)
     )
     
     
