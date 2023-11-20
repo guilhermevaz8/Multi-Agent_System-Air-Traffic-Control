@@ -81,11 +81,11 @@ class Environment:
         self.aircraft_positions[aircraf_id]=[x,y]
 
     
-    def save_aircraft_positions(self, aircrafr_id):
+    def save_aircraft_positions(self):
         with open("aircraft_positions.json", "w") as file:
-            print(f"Saving aircraft {aircrafr_id} position ({self.aircraft_positions[aircrafr_id]}) to JSON")
+            print("Saving aircraft positions to JSON")
             json.dump(self.aircraft_positions, file)
-            print(f"Aircraft {aircrafr_id} Position Saved to JSON")
+            print("Aircraft Positions Saved to JSON")
             print("-------------------------------")
 
     def get_aircraft_positions(self):
@@ -197,7 +197,13 @@ class StateTwo(State):
         self.agent.position = self.agent.route[0]
         print(f"Posicao depois: {self.agent.position}")
 
-        
+
+        msg_up = Message()
+        msg_up.to = "gestor@localhost"
+        msg_up.sender = str(self.agent.jid)
+        msg_up.body = str(self.agent.position)
+        msg_up.set_metadata("request", "update_position")
+        await self.send(msg_up)
 
 
         self.agent.route=self.agent.route[1:]
@@ -248,6 +254,7 @@ class AirplaneFSMAgent(Agent):
         self.generate_new_destination()
         self.count=0
         self.airplanes_positions = []
+        self.environment.update_position(str(self.jid),self.position[0],self.position[1])
 
 
     def generate_new_destination(self):
@@ -351,6 +358,34 @@ class AeroportoAgent(Agent):
                 msg.set_metadata("request", request_type)
                 await self.send(msg)
 
+class GestorEspaco(Agent):
+    def __init__(self, jid, password, environment):
+        super().__init__(jid, password)
+        self.environment = environment
+        self.count=0
+
+    async def setup(self):
+        t=Template()
+        t.set_metadata("request","update_position")
+        self.add_behaviour(self.ReceivePositionUpdates(), template=t)
+
+    class ReceivePositionUpdates(CyclicBehaviour):
+        async def run(self):
+            msg = await self.receive(timeout=5)  # Esperar por uma mensagem por um tempo limite
+            if msg:
+                print(f"posicao recebida: {msg.body}")
+                position = msg.body.replace('(', '').replace(')', '').replace(' ', '')
+                x_str, y_str = position.split(',')
+                x = int(x_str)
+                y = int(y_str)
+                self.agent.environment.update_position(str(msg.sender), x,y) 
+                self.agent.count+=1
+            if self.agent.count==5:
+                self.agent.count=0
+                self.agent.environment.save_aircraft_positions()
+
+
+
 
 async def main():
     print("Initializing environment...")
@@ -383,6 +418,9 @@ async def main():
         print(f"Agent airplane{i} started successfully")
 
 
+    gestor = GestorEspaco("gestor@localhost","password",environment)
+
+
     await asyncio.gather(
        airport_agent[0].start(auto_register=True),
        airport_agent[1].start(auto_register=True),
@@ -390,7 +428,8 @@ async def main():
        aircraft_agents[1].start(auto_register=True),
        aircraft_agents[2].start(auto_register=True),
        aircraft_agents[3].start(auto_register=True),
-       aircraft_agents[4].start(auto_register=True)
+       aircraft_agents[4].start(auto_register=True),
+       gestor.start(auto_register=True)
     )
     
     
