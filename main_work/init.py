@@ -8,7 +8,7 @@ def inicia_programa(nome_arquivo):
 
 if __name__ == "__main__":
 
-    arquivos = ['atc_environment_example.py','interface.py']
+    arquivos = ['airplanefsm.py','interface.py']
 
     processos = []
     for arquivo in arquivos:

@@ -51,7 +51,6 @@ while True:
     # Desenhar as aeronaves
     for aircraft_id, position in aircraft_positions.items():
         # Ajustar as posições para o tamanho da tela
-        print(position)
         pos_x = int(position[0] * screen_width / 40)
         pos_y = int(position[1] * screen_height / 30)
         pygame.draw.circle(screen, position[0], (pos_x, pos_y), 10)
