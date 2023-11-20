@@ -9,8 +9,6 @@ import json
 from random import randint
 import random
 from spade.template import Template
-
-
 from a import a_star_search
 
 
@@ -66,7 +64,8 @@ class Environment:
         # Obter todas as posições dos aeroportos
         airport_positions = list(self.airport_positions.values())
 
-        # Criar rotas entre todos os pares de posições de aeroportos
+        # Criar rotas entre todos os pares
+        #  de posições de aeroportos
         for start_pos in airport_positions:
             self.routes[start_pos] = {}
             for goal_pos in airport_positions:
@@ -181,7 +180,6 @@ class StateTwo(State):
         for position in self.agent.airplanes_positions:
             self.agent.update_grid(position)
         
-        
 
         print("ola dois")
 
@@ -275,7 +273,6 @@ class AirplaneFSMAgent(Agent):
 
     def check_route_conflict(self):
         position=self.route[0]
-        return False
         print(self.route)
         position=self.route[0]
         print(position)
