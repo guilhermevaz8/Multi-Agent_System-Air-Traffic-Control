@@ -406,8 +406,10 @@ async def main():
 
     aircraft_agents = []
     i=0
+    possible_air = list(environment.airport_positions.items())
     for i in range(5):
-        pos= random.choice(list(environment.airport_positions.items()))
+        pos= random.choice(possible_air)
+        possible_air.remove(pos)
         airport_color, position=pos
         print(f"Starting the agent airplane{i}...")
         agentAircraft = AirplaneFSMAgent(f"airplane{i}@localhost", "password", environment, position, airport_color)
