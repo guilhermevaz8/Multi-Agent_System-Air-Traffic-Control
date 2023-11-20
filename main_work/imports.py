@@ -9,4 +9,4 @@ import json
 from random import randint
 import random
 from spade.template import Template
-from a import a_star_search
+from astar import a_star_search
