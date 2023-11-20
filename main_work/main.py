@@ -10,18 +10,16 @@ async def main():
     environment = Environment()
     environment.generate_airport()
     environment.generate_all_routes()
-    print(f"-> Airport positions: {environment.airport_positions}")
-
     print("-> Environment initialized successfully")
 
     airport_agent = []
     i=0
     for key in environment.airport_positions:
         value=environment.airport_positions[key]
-        print(f"Starting the agent airport_agent at position:{value}...")
+        print(f"Starting the agent {key} at position:{value}...")
         agentAirport = AeroportoAgent(f"{key.lower()}@localhost", "password", environment,value)
         airport_agent.append(agentAirport)
-        print(f"Agent airport_agent at position:{agentAirport.position} created successfully")
+        print(f"Agent {key} at position:{agentAirport.position} created successfully")
         i+=1
     print(f"Airport positions created: {environment.airport_positions}")
 
@@ -37,9 +35,9 @@ async def main():
         aircraft_agents.append(agentAircraft)
         print(f"Agent airplane{i} started successfully")
 
-
+    print("Starting the agent airspace manager...")
     gestor = GestorEspaco("gestor@localhost","password",environment)
-
+    print("Agent airspace manager started successfully")
 
     await asyncio.gather(
         airport_agent[0].start(auto_register=True),

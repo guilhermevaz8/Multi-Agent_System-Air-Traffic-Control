@@ -15,7 +15,7 @@ class GestorEspaco(Agent):
         async def run(self):
             msg = await self.receive(timeout=5)  # Esperar por uma mensagem por um tempo limite
             if msg:
-                print(f"posicao recebida: {msg.body}")
+                print(f"Message recieved: {msg}")
                 position = msg.body.replace('(', '').replace(')', '').replace(' ', '')
                 x_str, y_str = position.split(',')
                 x = int(x_str)

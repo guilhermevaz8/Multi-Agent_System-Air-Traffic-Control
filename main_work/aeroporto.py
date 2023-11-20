@@ -32,6 +32,7 @@ class AeroportoAgent(Agent):
         await self.send(msg)
 
 
+
     async def setup(self):
         self.add_behaviour(self.AeroportoBehaviour())
 
@@ -56,4 +57,6 @@ class AeroportoAgent(Agent):
                 msg.body = request_type + " rejected" if answer == "no" else request_type + " accepted"
                 msg.set_metadata("request_answer",answer)
                 msg.set_metadata("request", request_type)
+                print(f"Message sent: {msg}")
                 await self.send(msg)
+                

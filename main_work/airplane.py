@@ -9,7 +9,7 @@ class AircraftComs(CyclicBehaviour):
     async def run(self):
         msg = await self.receive(timeout=1)  # Esperar por uma mensagem por um tempo limite
         if msg:
-            print(f"Recebi: {msg}")
+            print(f"Message recieved: {msg}")
             request_type = msg.metadata["request"]
             if request_type == "position" and "request_answer" not in msg.metadata:
                 msg_res = Message()
@@ -19,7 +19,7 @@ class AircraftComs(CyclicBehaviour):
                 msg_res.set_metadata("request", "position")
                 msg_res.set_metadata("request_answer", str(self.agent.position[0]) + " " + str(self.agent.position[1]))
                 
-                print(f"Enviei: {msg_res}")
+                print(f"Message sent: {msg_res}")
                 await self.send(msg_res)
             elif "request_answer" in msg.metadata:
                 pos = [int(x) for x in msg.metadata["request_answer"].split(" ")]
@@ -40,18 +40,20 @@ class ExampleFSMBehaviour(FSMBehaviour):
 
 class StateOne(State):
     async def run(self):
-        print("Vou pedir para levantar")
+        print("Asking to takeoff")
         msg = Message()
         msg.to = f"{self.agent.last_airport}@localhost"
         msg.body = "Permition to takeoff?"
         msg.set_metadata("request", "takeoff")
+        print(f"Message sent: {msg}")
         await self.send(msg)
         msg_answer = await self.receive(timeout=10)
         if msg_answer and "request_answer" in msg_answer.metadata:
             print(f"Message received by {self.agent.jid}: {msg_answer}")
             answer = msg_answer.metadata["request_answer"]
             while answer == "no":
-                print("Vou pedir outra vez para levantar")
+                print("Asking again to takeoff")
+                print(f"Message sent: {msg}")
                 await self.send(msg)
                 msg_answer = await self.receive(timeout=10)
                 answer = msg_answer.metadata["request_answer"]
@@ -63,7 +65,6 @@ class StateOne(State):
     
 class StateTwo(State):
     async def run(self):
-        print("Moving...\nMoving...")
         print(f"Aircraft {self.agent.jid} is moving!")
         jids_list=[]
         for i in range(5):
@@ -78,38 +79,28 @@ class StateTwo(State):
             msg.sender = str(self.agent.jid)
             msg.body = "What is your position?"
             msg.set_metadata("request", "position")
-            print(f"Mandei mensagem: {msg}")
+            print(f"Message sent: {msg}")
             await self.send(msg)
             
             
         while len(self.agent.airplanes_positions) < 4:
-            print("ola")
-            print(self.agent.airplanes_positions)
             await asyncio.sleep(0.5)
-
-        print(f" ola {self.agent.airplanes_positions}")
 
         for position in self.agent.airplanes_positions:
             self.agent.update_grid(position)
         
 
-        print("ola dois")
 
         conflict = self.agent.check_route_conflict()
-        print(f"Conflito: {conflict}")
         while conflict==True:
-            print(f"vai errar : {self.agent.final_position}")
             self.agent.route=a_star_search(self.agent.grid,self.agent.position,self.agent.final_position)
-            print("depois do a star")
             conflict = self.agent.check_route_conflict()
             self.agent.flag=True
         if self.agent.flag==True:
             self.agent.save_route_to_file()
             self.agent.flag=False
         self.agent.grid=np.zeros((40,30))
-        print(f"Posicao antes: {self.agent.position}")
         self.agent.position = self.agent.route[0]
-        print(f"Posicao depois: {self.agent.position}")
 
 
         msg_up = Message()
@@ -117,6 +108,7 @@ class StateTwo(State):
         msg_up.sender = str(self.agent.jid)
         msg_up.body = str(self.agent.position)
         msg_up.set_metadata("request", "update_position")
+        print(f"Message sent: {msg_up}")
         await self.send(msg_up)
 
         self.agent.save_route_to_file()
@@ -127,8 +119,7 @@ class StateTwo(State):
 
         await asyncio.sleep(1)
         if len(self.agent.route) ==1:
-            print("A chegar ao aeroporto")
-            print("Vou pedir para aterrar")
+            print("Arriving to airport")
             self.set_next_state(STATE_THREE)
             return
 
@@ -149,9 +140,9 @@ class StateThree(State):
         msg.to = f"{self.agent.last_airport}@localhost"
         msg.body = "Permition to land?"
         msg.set_metadata("request", "landing")
+        print(f"Message sent: {msg}")
         await self.send(msg)
         msg_answer = await self.receive(timeout=10)
-        print("Ola, estou depois do recieve")
         if msg_answer and "request_answer" in msg_answer.metadata:
             print(f"Message received by {self.agent.jid}: {msg_answer}")
             answer = msg_answer.metadata["request_answer"]
@@ -180,13 +171,10 @@ class AirplaneFSMAgent(Agent):
 
     def generate_new_destination(self):
         destination = self.environment.generate_final_position(self.position,self.last_airport)  # Pass the initial position
-        print(f"-> Destination chosen: {destination}")
         self.destination_airport = destination[0]
         self.final_position = destination[1]
         self.environment.destinos[str(self.jid)]=self.destination_airport
-        print(f"\tFinal position: {self.final_position}")
-        print(f"AP: {self.environment.airport_positions}")
-        print(f"\tRota para {self.destination_airport} : {self.environment.routes[self.position][self.final_position]}")
+        print(f"\tRoute to {self.destination_airport} : {self.environment.routes[self.position][self.final_position]}")
         self.route = self.environment.routes[self.position][self.final_position]
     
     
