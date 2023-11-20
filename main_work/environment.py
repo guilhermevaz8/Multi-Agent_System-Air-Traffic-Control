@@ -56,7 +56,6 @@ class Environment:
             for goal_pos in airport_positions:
                 if start_pos != goal_pos:
                     # Usar o A* para calcular a rota
-                    print(f"pos start: {start_pos}, pos_final : {goal_pos}")
                     route = a_star_search(self.grid,start_pos, goal_pos)
                     self.routes[start_pos][goal_pos] = route
 

@@ -16,7 +16,7 @@ class AeroportoAgent(Agent):
 
     def rng_badWeather(self):
         rng = np.random.uniform()
-        if rng >= 0.5:
+        if rng >= 0.1:
             self.badWeather = False
         else:
             self.badWeather = True
