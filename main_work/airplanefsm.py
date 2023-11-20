@@ -22,6 +22,7 @@ class Environment:
         self.grid = np.zeros((40,30))
         self.airport_positions = {}
         self.routes = {}
+        self.destinos = {}
 
     def generate_airport(self):
         DISTANCE_BET_AIRP = 15
@@ -82,8 +83,11 @@ class Environment:
     
     def save_aircraft_positions(self):
         with open("aircraft_positions.json", "w") as file:
+            save_data = {}
+            for key, destino in self.destinos.items():
+                save_data[key]=(destino,self.aircraft_positions[key])
             print("Saving aircraft positions to JSON")
-            json.dump(self.aircraft_positions, file)
+            json.dump(save_data, file)
             print("Aircraft Positions Saved to JSON")
             print("-------------------------------")
 
@@ -191,6 +195,8 @@ class StateTwo(State):
             print("depois do a star")
             conflict = self.agent.check_route_conflict()
         
+        self.agent.grid=np.zeros((40,30))
+
         print(f"Posicao antes: {self.agent.position}")
         self.agent.position = self.agent.route[0]
         print(f"Posicao depois: {self.agent.position}")
@@ -225,6 +231,8 @@ class StateThree(State):
     async def run(self):
         self.agent.position = self.agent.route[0]
         self.agent.route=self.agent.route[1:]
+        self.agent.environment.update_position(str(self.agent.jid), self.agent.position[0],self.agent.position[1]) 
+        self.agent.environment.save_aircraft_positions()
         msg = Message()
         msg.to = f"{self.agent.last_airport}@localhost"
         msg.body = "Permition to land?"
@@ -261,6 +269,7 @@ class AirplaneFSMAgent(Agent):
         print(f"-> Destination chosen: {destination}")
         self.destination_airport = destination[0]
         self.final_position = destination[1]
+        self.environment.destinos[str(self.jid)]=self.destination_airport
         print(f"\tFinal position: {self.final_position}")
         print(f"AP: {self.environment.airport_positions}")
         print(f"\tRota para {self.destination_airport} : {self.environment.routes[self.position][self.final_position]}")
@@ -286,16 +295,20 @@ class AirplaneFSMAgent(Agent):
 
     
     def update_grid(self, position):
+        position_list = tuple(position)
+        airport_pos = list(self.environment.airport_positions.values())
+        if position_list in airport_pos:
+            return
         for x in range(position[0] - 1, position[0] + 2):
             for y in range(position[1] - 1, position[1] + 2):
                 if 0 <= x < len(self.grid) and 0 <= y < len(self.grid[0]):
                     self.grid[x][y] = 1  # Marcar a célula e as células adjacentes como ocupadas
+        for pos in airport_pos:
+            self.grid[pos[0],pos[1]]=0
+
 
     def check_route_conflict(self):
         position=self.route[0]
-        print(self.route)
-        position=self.route[0]
-        print(position)
         if self.grid[position[0]][position[1]] == 1:
             return True
         return False
@@ -365,7 +378,6 @@ class AeroportoAgent(Agent):
                     answer = "no" if self.agent.badWeather else "yes"
                     if answer == "yes":
                         self.agent.change_isFree_status(True)
-                print(answer)
                 receiver=str(msg.sender)
                 msg = Message()
                 msg.to = receiver
@@ -441,8 +453,11 @@ async def main():
 
 
     await asyncio.gather(
-       airport_agent[0].start(auto_register=True),
-       airport_agent[1].start(auto_register=True),
+        airport_agent[0].start(auto_register=True),
+        airport_agent[1].start(auto_register=True),
+        airport_agent[2].start(auto_register=True),
+        airport_agent[3].start(auto_register=True),
+        airport_agent[4].start(auto_register=True),
        aircraft_agents[0].start(auto_register=True),
        aircraft_agents[1].start(auto_register=True),
        aircraft_agents[2].start(auto_register=True),
