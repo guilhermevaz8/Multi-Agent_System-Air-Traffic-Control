@@ -1,14 +1,13 @@
 import threading
 import os
-
+import time
 
 def inicia_programa(nome_arquivo):
     os.system('python3 {}'.format(nome_arquivo))
-    # Ex: os.system('py -3.7 x.py')
 
 if __name__ == "__main__":
 
-    arquivos = ['airplanefsm.py','interface.py']
+    arquivos = ['main.py','interface.py']
 
     processos = []
     for arquivo in arquivos:
@@ -17,3 +16,4 @@ if __name__ == "__main__":
 
     for processo in processos:
         processo.start()
+        time.sleep(0.5)
