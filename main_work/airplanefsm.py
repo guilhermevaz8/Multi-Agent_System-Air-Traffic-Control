@@ -250,6 +250,7 @@ class AirplaneFSMAgent(Agent):
         self.grid=np.zeros((40,30))
         self.last_airport = last_airport
         self.generate_new_destination()
+        self.save_route_to_file()
         self.count=0
         self.airplanes_positions = []
         self.environment.update_position(str(self.jid),self.position[0],self.position[1])
@@ -264,6 +265,25 @@ class AirplaneFSMAgent(Agent):
         print(f"AP: {self.environment.airport_positions}")
         print(f"\tRota para {self.destination_airport} : {self.environment.routes[self.position][self.final_position]}")
         self.route = self.environment.routes[self.position][self.final_position]
+    
+    
+    def save_route_to_file(self, file_name="aircraft_routes.json"):
+    # Carrega os dados existentes do arquivo, se ele existir
+        try:
+            with open(file_name, 'r') as file:
+                data = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data = {}
+        # Adiciona a nova rota ao dicionário de dados
+        new_entry =self.route
+        data[str(self.jid)] = new_entry  # Você pode mudar a chave conforme necessário
+
+        # Escreve os dados atualizados de volta ao arquivo
+        with open(file_name, 'w') as file:
+            json.dump(data, file, indent=4)
+        print(f"Route added to {file_name}")
+        
+
     
     def update_grid(self, position):
         for x in range(position[0] - 1, position[0] + 2):
