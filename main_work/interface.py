@@ -53,7 +53,6 @@ airplane_image = pygame.image.load("aviao.png").convert_alpha()
 # Redimensionar a imagem para um tamanho adequado
 airplane_image = pygame.transform.scale(airplane_image, (70, 70))  # Ajuste o tamanho conforme necessário
 
-
 # Loop principal
 while True:
     for event in pygame.event.get():
@@ -82,22 +81,28 @@ while True:
             start_pos = scaled_route[i]
             end_pos = scaled_route[i + 1]
             # Ajustar a espessura da linha aqui, por exemplo, 3 pixels
-            pygame.draw.line(screen, aircraft_positions[aircraft_id][0], start_pos, end_pos, 7)
+            print(aircraft_routes)
+            print(aircraft_routes[aircraft_id][0])
+            pygame.draw.line(screen, (255,255,55), start_pos, end_pos, 7)
 
     for aircraft_id, position in aircraft_positions.items():
-        # Ajustar as posições para o tamanho da tela
-        pos_x = int(position[1][0] * screen_width / 40)
-        pos_y = int(position[1][1] * screen_height / 30)
+        # print(aircraft_id, position)
+        # # Ajustar as posições para o tamanho da tela
+        # print(position)
+        pos_x = int(position[0] * screen_width / 40)
+        pos_y = int(position[1] * screen_height / 30)
 
         # Calcular a direção para o próximo ponto na rota
-        if len(aircraft_routes[aircraft_id]) > 1:
-            next_point = aircraft_routes[aircraft_id][1]  # Assumindo que o próximo ponto é o segundo na lista
+        if len(aircraft_positions[aircraft_id]) > 1:
+            print(aircraft_positions)
+            next_point = aircraft_positions[aircraft_id]  # Assumindo que o próximo ponto é o segundo na lista
+            print(next_point)
             next_x = int(next_point[0] * screen_width / 40)
             next_y = int(next_point[1] * screen_height / 30)
             
             # Calcular o ângulo de rotação
-            dx = next_point[0] - position[1][0]
-            dy = -(next_point[1] - position[1][1])
+            dx = next_point[0] - position[0]
+            dy = -(next_point[1] - position[1])
             angle = math.atan2(dy, dx)
 
             # Rotacionar a imagem do avião
@@ -110,7 +115,6 @@ while True:
             rect = airplane_image.get_rect(center=(pos_x, pos_y))
 
         var = pygame.PixelArray(rotated_airplane)
-        var.replace(COLORS["WHITE"],COLORS[position[0]])
         del var
 
         # Desenhar a imagem do avião rotacionada

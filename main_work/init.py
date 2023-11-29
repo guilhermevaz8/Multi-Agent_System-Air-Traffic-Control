@@ -3,7 +3,7 @@ import os
 import time
 
 def inicia_programa(nome_arquivo):
-    os.system('python3 {}'.format(nome_arquivo))
+    os.system('python {}'.format(nome_arquivo))
 
 if __name__ == "__main__":
 
@@ -16,4 +16,4 @@ if __name__ == "__main__":
 
     for processo in processos:
         processo.start()
-        time.sleep(0.5)
+        time.sleep(1)
