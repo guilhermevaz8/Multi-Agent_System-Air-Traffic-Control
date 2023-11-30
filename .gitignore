@@ -1,3 +1,4 @@
 main_work/__pycache__/
 main_work/airport_positions.json
 main_work/aircraft_positions.json
+__pycache__/
