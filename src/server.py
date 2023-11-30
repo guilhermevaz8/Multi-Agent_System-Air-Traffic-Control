@@ -5,7 +5,7 @@ from mesa.space import MultiGrid
 from mesa.time import RandomActivation
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid
-from mesa_models.boltzmann_wealth_model.model import BoltzmannWealthModel
+#from mesa_models.boltzmann_wealth_model.model import BoltzmannWealthModel
 from mesa.datacollection import DataCollector
 import ipywidgets as widgets
 from IPython.display import display
@@ -54,21 +54,29 @@ class TraficControler(Model):
         self.airports = airports
         self.grid = MultiGrid(width, height, True)
         self.schedule = RandomActivation(self)
-
-
+        
+        airport_x_coordinates = []
+        airport_y_coordinates = []
+        
+        for i in range(self.airports):
+            x = self.random.randrange(self.grid.width)
+            y = self.random.randrange(self.grid.height)
+            airport_x_coordinates.append(x)
+            airport_y_coordinates.append(y)
+            airport = Airport(i, self, (x, y))
+            self.grid.place_agent(airport, (x, y))
+        
+        total = len(airport_x_coordinates)
+        
         # Criação dos agentes móveis
         for i in range(self.airplanes):
             a = Airplane(i, self)
             self.schedule.add(a)
-            x = self.random.randrange(self.grid.width)
-            y = self.random.randrange(self.grid.height)
+            x = airport_x_coordinates[i%total]
+            y = airport_y_coordinates[i%total]
             self.grid.place_agent(a, (x, y))
-
-        for i in range(self.airports):
-            x = self.random.randrange(self.grid.width)
-            y = self.random.randrange(self.grid.height)
-            airport = Airport(i, self, (x, y))
-            self.grid.place_agent(airport, (x, y))
+            
+            
 
     def step(self):
         self.schedule.step()
