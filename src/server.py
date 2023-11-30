@@ -15,20 +15,42 @@ from mesa.visualization.UserParam import Slider
 
 
 class Airplane(Agent):
-    def __init__(self, unique_id, model):
+    def __init__(self, unique_id, model,origin : list ,destination : list):
         super().__init__(unique_id, model)
+        self.destination = destination
+        self.origin = origin
 
     def step(self):
         self.move()
 
     def move(self):
-        possible_steps = self.model.grid.get_neighborhood(
-            self.pos,
-            moore=True,
-            include_center=False
-        )
-        new_position = random.choice(possible_steps)
-        self.model.grid.move_agent(self, new_position)
+        print('origin: ',self.origin)
+        print('dest: ',self.destination)
+        x0 = self.origin[0]
+        y0 = self.origin[1]
+        x1 = self.destination[0]
+        y1 = self.destination[1]
+
+        while [x0,y0] != [x1,y1]:
+            if x0 < x1:
+                x0 = x0 + 1
+                self.model.grid.move_agent(self, (x0,y0))
+            elif x0 > x1 :
+                x0 = x0 - 1
+                self.model.grid.move_agent(self, (x0,y0))
+                print(x0,y0)
+            if y0 < y1:
+                y0 = y0 + 1
+                self.model.grid.move_agent(self, (x0,y0))
+                print(x0,y0)
+            elif y0 > y1:
+                y0 = y0 - 1
+                self.model.grid.move_agent(self, (x0,y0))
+                print(x0,y0)
+        #self.model.grid.move_agent(self, (x0,y0))
+        
+        #new_position = random.choice(possible_steps)
+        #self.model.grid.move_agent(self, new_position)
 
 
 class Airport(Agent):
@@ -53,30 +75,25 @@ class TraficControler(Model):
         self.airplanes = airplanes
         self.airports = airports
         self.grid = MultiGrid(width, height, True)
-        self.schedule = RandomActivation(self)
-        
-        airport_x_coordinates = []
-        airport_y_coordinates = []
+        self.schedule = RandomActivation(self)        
+        self.airport_coordinates = []
         
         for i in range(self.airports):
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
-            airport_x_coordinates.append(x)
-            airport_y_coordinates.append(y)
+            self.airport_coordinates.append((x,y))
             airport = Airport(i, self, (x, y))
             self.grid.place_agent(airport, (x, y))
         
-        total = len(airport_x_coordinates)
+        total = len(self.airport_coordinates)
         
         # Criação dos agentes móveis
         for i in range(self.airplanes):
-            a = Airplane(i, self)
+            dest = list(self.airport_coordinates[(i+1)%total])
+            origin = list(self.airport_coordinates[i%total])
+            a = Airplane(i, self,origin,dest)
             self.schedule.add(a)
-            x = airport_x_coordinates[i%total]
-            y = airport_y_coordinates[i%total]
-            self.grid.place_agent(a, (x, y))
-            
-            
+            self.grid.place_agent(a, origin)
 
     def step(self):
         self.schedule.step()
@@ -98,4 +115,3 @@ server = ModularServer(
 )
 
 server.launch()
-
