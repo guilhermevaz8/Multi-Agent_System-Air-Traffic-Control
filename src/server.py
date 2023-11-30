@@ -13,7 +13,7 @@ from mesa.visualization.UserParam import Slider
 
 # Defina suas variáveis iniciais aqui
 
-
+# Quando instanciar a classe, passa o list(x,y) da origem do avião e o list(x,y) do aeroporto em que ele vai viajar
 class Airplane(Agent):
     def __init__(self, unique_id, model,origin : list ,destination : list):
         super().__init__(unique_id, model)
@@ -24,33 +24,29 @@ class Airplane(Agent):
         self.move()
 
     def move(self):
-        print('origin: ',self.origin)
-        print('dest: ',self.destination)
         x0 = self.origin[0]
         y0 = self.origin[1]
         x1 = self.destination[0]
         y1 = self.destination[1]
 
-        while [x0,y0] != [x1,y1]:
+        if [x0,y0] != [x1,y1]:
             if x0 < x1:
                 x0 = x0 + 1
                 self.model.grid.move_agent(self, (x0,y0))
             elif x0 > x1 :
                 x0 = x0 - 1
                 self.model.grid.move_agent(self, (x0,y0))
-                print(x0,y0)
             if y0 < y1:
                 y0 = y0 + 1
                 self.model.grid.move_agent(self, (x0,y0))
-                print(x0,y0)
             elif y0 > y1:
                 y0 = y0 - 1
                 self.model.grid.move_agent(self, (x0,y0))
-                print(x0,y0)
-        #self.model.grid.move_agent(self, (x0,y0))
         
-        #new_position = random.choice(possible_steps)
-        #self.model.grid.move_agent(self, new_position)
+        self.origin[0] = x0
+        self.origin[1] = y0
+        self.destination[0] = x1
+        self.destination[1] = y1
 
 
 class Airport(Agent):
@@ -85,7 +81,7 @@ class TraficControler(Model):
             airport = Airport(i, self, (x, y))
             self.grid.place_agent(airport, (x, y))
         
-        total = len(self.airport_coordinates)
+        total = len(self.airport_coordinates) # Obtem a quantidade de aeroportos
         
         # Criação dos agentes móveis
         for i in range(self.airplanes):
