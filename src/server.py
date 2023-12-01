@@ -14,7 +14,13 @@ from agent import *
 # Defina suas variáveis iniciais aqui
 def agent_portrayal(agent):
     if isinstance(agent, Airplane):
-        return {"Shape": "arrowHead", "Filled": "true", "Layer": 0, "Color": "red", "scale": 0.5, "heading_x": (agent.get_direction()[0]), "heading_y": (agent.get_direction()[1])}
+        return {
+            "Shape": f"assets/aviao_{agent.heading_x}{agent.heading_y}.png",
+            "Filled": "true",
+            "Layer": 0,
+            "Color": "red",
+            "scale": 0.8,
+        }
     elif isinstance(agent, Airport):
         return {"Shape": "rect", "Filled": "true", "Layer": 0, "Color": "blue", "w": 0.5, "h": 0.5}
 

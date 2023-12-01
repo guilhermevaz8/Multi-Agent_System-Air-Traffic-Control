@@ -5,8 +5,8 @@ class Airplane(Agent):
         super().__init__(unique_id, model)
         self.destination = destination
         self.origin = origin
-        self.heading_x = 1;
-        self.heading_y = 0;
+        self.heading_x = 0;
+        self.heading_y = 1;
 
     def step(self):
         self.move()
@@ -19,21 +19,23 @@ class Airplane(Agent):
         y0 = self.origin[1]
         x1 = self.destination[0]
         y1 = self.destination[1]
-        self.heading_x = 0;
-        self.heading_y = 0;
 
         if [x0,y0] != [x1,y1]:
             if x0 < x1:
                 x0 = x0 + 1
                 self.heading_x = 1;
+                self.heading_y = 0;
             elif x0 > x1 :
                 x0 = x0 - 1
                 self.heading_x = -1;
+                self.heading_y = 0;
             elif y0 < y1:
                 y0 = y0 + 1
+                self.heading_x = 0;
                 self.heading_y = 1;
             elif y0 > y1:
                 y0 = y0 - 1
+                self.heading_x = 0;
                 self.heading_y = -1;
         self.model.grid.move_agent(self, (x0,y0))
 
