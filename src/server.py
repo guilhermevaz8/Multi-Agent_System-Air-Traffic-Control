@@ -99,8 +99,8 @@ grid = CanvasGrid(agent_portrayal, 20, 20, 500, 500)
 model_params = {
     "airplanes": Slider("Airplanes", 10, 1, 100, 1),
     "airports": Slider("Airport", 3, 1, 100, 1),
-    "width": 10,
-    "height": 10,
+    "width": 20,
+    "height": 20,
 }
 
 server = ModularServer(
